@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import type { LabMissionComplete } from '../../../../packages/shared-types/edunova-contract';
+import type { LabMissionComplete } from '@edunova/shared-types';
 import { aliasByStudent, benchmarkFor, profiles } from '../data/seed.js';
 
 export const gamification = Router();

@@ -1,51 +1,114 @@
-# EduNova — Backend
+# EduNova — Monorepo (Hack4Edu 2026)
 
-API y contratos de datos de EduNova, plataforma de aprendizaje colaborativo, gamificado y adaptativo para niños y adolescentes de 7 a 15 años. Proyecto para Hack4Edu 2026 (ProFuturo).
+Plataforma de Aprendizaje Colaborativo, Gamificado y Adaptativo para niños y adolescentes de 7 a 15 años. Proyecto para Hack4Edu 2026 (ProFuturo).
 
-- **Frontend (Next.js):** https://github.com/naohan/EduNova (carpeta `edunova-frontend/`)
 - **Tablero de tareas:** https://github.com/users/nilton2005/projects/2
+- **Documentación de arquitectura:** [Plan Maestro de Arquitectura y Producto](docs/ALCANCE.md)
 
-## Estructura
+---
+
+## 📁 Estructura del Monorepo
+
 ```
-apps/api/                   API Node + Express + TypeScript
-  src/routes/               Un archivo por dominio (ai, units, teacher, gamification, analytics, auth)
-  src/services/ai.ts        IA simulada (sin API key): respuestas fijas con latencia falsa
-  src/data/seed.ts          Datos semilla en memoria
-packages/shared-types/      Contrato de datos compartido con el frontend
-docs/                       Alcance y prompts pedagógicos
+├── apps/
+│   ├── api/                    # API Backend (Node + Express + TypeScript, puerto 4000)
+│   │   ├── src/routes/         # Rutas por dominio (auth, units, teacher, ai, duel, passport, gamification, analytics)
+│   │   ├── src/services/ai.ts  # IA simulada sin API key (simulate con latencia)
+│   │   └── src/data/seed.ts    # Datos semilla en memoria (5 usuarios, 2 unidades)
+│   └── web/                    # Frontend (Next.js 16 + React 19 + Tailwind CSS v4, puerto 3000)
+│       ├── app/                # App Router (rutas /estudiante, /docente, /)
+│       ├── components/         # Componentes UI, visores 3D (Solar, Cuerpo) y gráficos
+│       └── public/assets/      # Modelos 3D (.glb), sprites y assets
+├── packages/
+│   └── shared-types/           # Contratos TypeScript unificados (@edunova/shared-types)
+├── docs/                       # Alcance, historias de usuario y prompts pedagógicos
+├── .env.example                # Variables de entorno unificadas del monorepo
+├── package.json                # Configuración raíz con npm workspaces
+└── CLAUDE.md                   # Reglas para agentes de IA y desarrolladores
 ```
 
-## Arrancar
+---
+
+## 🚀 Inicio Rápido
+
+### 1. Clonar e instalar dependencias
+
 ```bash
-cd apps/api
+# Desde la raíz del monorepo:
 cp .env.example .env
 npm install
-npm run dev        # http://localhost:4000
-npm run typecheck
 ```
 
-Prueba rápida: `curl localhost:4000/api/health`
+### 2. Arrancar en desarrollo
 
-## Endpoints (todos responden con datos semilla; la IA es simulada, sin API key)
-| Método | Ruta | Estado |
+```bash
+# Arranca tanto el Backend (4000) como el Frontend (3000) en paralelo:
+npm run dev
+```
+
+O arrancar individualmente:
+
+```bash
+npm run dev:api     # Solo API (http://localhost:4000)
+npm run dev:web     # Solo Web (http://localhost:3000)
+```
+
+- **Frontend:** [http://localhost:3000](http://localhost:3000)
+- **Backend API:** [http://localhost:4000/api/health](http://localhost:4000/api/health)
+
+---
+
+## 🛠️ Scripts y Tooling
+
+| Comando | Descripción |
+|---|---|
+| `npm run dev` | Arranca API y Frontend simultáneamente con `concurrently` |
+| `npm run dev:api` | Arranca únicamente el backend Express en modo watch |
+| `npm run dev:web` | Arranca únicamente el frontend Next.js |
+| `npm run typecheck` | Verificación de tipos TypeScript en todos los workspaces |
+| `npm run lint` | Análisis estático de código en todos los workspaces |
+| `npm run build` | Compilación de producción de todos los paquetes |
+
+---
+
+## 📡 Endpoints del API Backend
+
+| Método | Ruta | Descripción / Estado |
 |---|---|---|
-| POST | `/api/auth/login` | demo, 5 usuarios de prueba |
-| GET | `/api/units`, `/api/units/:id` | semilla (Sistema Solar, Fracciones) |
-| POST | `/api/ai/ingest-document` | simulado (elige unidad por palabras clave) |
-| PUT | `/api/teacher/approve-rubric` | listo |
-| POST | `/api/ai/analyze-handwritten-photo` | simulado (hoja de prueba fija) |
-| POST | `/api/ai/validate-duel-question` | simulado (heurística simple) |
-| POST | `/api/ai/family-home-explainer` | simulado |
-| GET | `/api/leagues/leaderboard?league=mastery\|effort` | semilla |
-| GET | `/api/benchmark/external/:studentId` | semilla |
-| POST | `/api/labs/complete-mission` | en memoria |
-| POST | `/api/progress/sync` | en memoria |
-| GET | `/api/duel/ghost-opponent?ageTier=` | semilla, por rango de edad |
-| POST | `/api/duel/result` | en memoria, suma XP y NovaCoins |
-| GET | `/api/passport/:studentId` | JSON de competencias + QR en SVG |
-| GET | `/api/analytics/explainable-alerts` | semilla |
+| `GET` | `/api/health` | Healthcheck del servicio |
+| `POST` | `/api/auth/login` | Login demo con 5 usuarios semilla |
+| `GET` | `/api/units` | Listado de unidades curriculares |
+| `GET` | `/api/units/:id?ageTier=` | Unidad adaptada según rango de edad |
+| `POST` | `/api/ai/ingest-document` | Extracción de subtemas y rúbrica editable |
+| `PUT` | `/api/teacher/approve-rubric` | Aprobación docente (DRAFT → PUBLISHED) |
+| `POST` | `/api/ai/analyze-handwritten-photo` | Análisis paso a paso de foto de cuaderno |
+| `POST` | `/api/ai/validate-duel-question` | Validación de preguntas de duelo |
+| `POST` | `/api/ai/family-home-explainer` | Explicación cotidiana para padres/tutores |
+| `GET` | `/api/leagues/leaderboard?league=` | Tablas de posiciones (Maestría / Superación) |
+| `GET` | `/api/benchmark/external/:studentId` | Benchmarking y percentil comparativo |
+| `POST` | `/api/labs/complete-mission` | Registro de recompensas de misión 3D |
+| `POST` | `/api/progress/sync` | Sincronización offline-first de progreso |
+| `GET` | `/api/duel/ghost-opponent?ageTier=` | Oponente fantasma para duelo asíncrono |
+| `POST` | `/api/duel/result` | Registro de resultado de duelo (+XP, NovaCoins) |
+| `GET` | `/api/passport/:studentId` | Pasaporte con competencias y código QR en SVG |
+| `GET` | `/api/analytics/explainable-alerts` | Alertas pedagógicas explicables |
 
-## Cómo trabajar
+---
+
+## 👥 Usuarios de Prueba (Seed)
+
+| Usuario ID | Rol | Alias | Detalle |
+|---|---|---|---|
+| `u-teacher-1` | `TEACHER` | Profe Ana | Docente del aula `EDU-402` |
+| `u-student-1` | `STUDENT` | Gloria | Aventurera (10-12 años), aula `EDU-402` |
+| `u-student-2` | `STUDENT` | Mateo | Explorador (7-9 años), aula `EDU-402` |
+| `u-student-3` | `STUDENT` | Sofía | Creadora (13-15 años), aula `EDU-402` |
+| `u-family-1` | `FAMILY_TUTOR` | Mamá de Gloria | Tutor familiar vinculado |
+
+---
+
+## 📋 Reglas de Desarrollo
+
 - Lee [CLAUDE.md](CLAUDE.md) y [docs/ALCANCE.md](docs/ALCANCE.md).
-- Una rama por tarea: `feat/<modulo>-<tarea>`, PR a `main`.
-- Los tipos viven en `packages/shared-types/edunova-contract.ts`. El frontend copia ese archivo; si cambia, avisa.
+- Los contratos compartidos viven en `packages/shared-types` y se importan como `@edunova/shared-types`.
+- Trabaja en tu propia rama (`Bryan` o `feat/<modulo>-<tarea>`) y crea PR hacia `main`.

@@ -1,0 +1,26 @@
+{
+  "name": "edunova",
+  "version": "0.1.0",
+  "private": true,
+  "description": "EduNova: Plataforma de Aprendizaje Colaborativo, Gamificado y Adaptativo (Hack4Edu 2026)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n \"api,web\" -c \"cyan,magenta\" \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/web\"",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspaces --if-present",
+    "build:api": "npm run build --workspace=apps/api --if-present",
+    "build:web": "npm run build --workspace=apps/web",
+    "start": "concurrently -n \"api,web\" -c \"cyan,magenta\" \"npm run start --workspace=apps/api\" \"npm run start --workspace=apps/web\"",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.0.0"
+  }
+}
+

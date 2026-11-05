@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import type { LearningUnit } from '../../../../packages/shared-types/edunova-contract';
+import type { LearningUnit } from '@edunova/shared-types';
 import { fractionsUnit, handwrittenFallback, solarSystemUnit, units } from '../data/seed.js';
 import { detectLab, simulate } from '../services/ai.js';
 

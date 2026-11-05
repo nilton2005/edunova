@@ -5,7 +5,7 @@ import type {
   HandwrittenAnalysis,
   LearningUnit,
   User,
-} from '../../../../packages/shared-types/edunova-contract';
+} from '@edunova/shared-types';
 
 // Datos semilla en memoria. Issue #2: reemplazar por base de datos real.
 
