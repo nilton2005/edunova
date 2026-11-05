@@ -39,8 +39,3 @@ gamification.post('/progress/sync', (req, res) => {
   }
   res.json({ synced: events.length });
 });
-
-// GET /api/duel/ghost-opponent  -> partida grabada de otro colegio (simulado)
-gamification.get('/duel/ghost-opponent', (_req, res) => {
-  res.json({ alias: 'Valentina', institutionName: 'I.E. Los Andes', ageRange: '10-12', timeSeconds: 94, score: 8 });
-});

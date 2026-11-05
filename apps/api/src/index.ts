@@ -3,7 +3,9 @@ import express from 'express';
 import { ai } from './routes/ai.js';
 import { analytics } from './routes/analytics.js';
 import { auth } from './routes/auth.js';
+import { duel } from './routes/duel.js';
 import { gamification } from './routes/gamification.js';
+import { passport } from './routes/passport.js';
 import { teacher } from './routes/teacher.js';
 import { unitsRouter } from './routes/units.js';
 
@@ -17,6 +19,8 @@ app.use('/api/units', unitsRouter);
 app.use('/api/teacher', teacher);
 app.use('/api/ai', ai);
 app.use('/api/analytics', analytics);
+app.use('/api/duel', duel);
+app.use('/api/passport', passport);
 app.use('/api', gamification);
 
 const port = Number(process.env.PORT ?? 4000);

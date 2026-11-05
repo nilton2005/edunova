@@ -40,7 +40,9 @@ Prueba rápida: `curl localhost:4000/api/health`
 | GET | `/api/benchmark/external/:studentId` | semilla |
 | POST | `/api/labs/complete-mission` | en memoria |
 | POST | `/api/progress/sync` | en memoria |
-| GET | `/api/duel/ghost-opponent` | semilla |
+| GET | `/api/duel/ghost-opponent?ageTier=` | semilla, por rango de edad |
+| POST | `/api/duel/result` | en memoria, suma XP y NovaCoins |
+| GET | `/api/passport/:studentId` | JSON de competencias + QR en SVG |
 | GET | `/api/analytics/explainable-alerts` | semilla |
 
 ## Cómo trabajar
