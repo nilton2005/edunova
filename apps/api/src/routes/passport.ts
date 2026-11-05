@@ -1,13 +1,14 @@
 import { Router } from 'express';
 import QRCode from 'qrcode';
-import { aliasByStudent, profiles } from '../data/seed.js';
+import { getProfile } from '../data/db.js';
+import { aliasByStudent } from '../data/seed.js';
 
 export const passport = Router();
 
 // GET /api/passport/:studentId
 // Pasaporte EduNova: JSON resumido de competencias + QR (SVG) para llevar a otro colegio.
 passport.get('/:studentId', async (req, res) => {
-  const profile = profiles.find((p) => p.studentId === req.params.studentId);
+  const profile = getProfile(req.params.studentId);
   if (!profile) return res.status(404).json({ error: 'Estudiante no encontrado' });
 
   const summary = {

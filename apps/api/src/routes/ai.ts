@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import type { LearningUnit } from '../../../../packages/shared-types/edunova-contract';
-import { fractionsUnit, handwrittenFallback, solarSystemUnit, units } from '../data/seed.js';
+import { saveUnit } from '../data/db.js';
+import { fractionsUnit, handwrittenFallback, solarSystemUnit } from '../data/seed.js';
 import { detectLab, simulate } from '../services/ai.js';
 
 // Todos los endpoints de IA son simulados (sin API key). Ver services/ai.ts.
@@ -20,7 +21,7 @@ ai.post('/ingest-document', async (req, res) => {
     status: 'DRAFT',
     rubric: base.rubric.map((c) => ({ ...c, approvedByTeacher: false })),
   };
-  units.push(unit);
+  saveUnit(unit);
   res.json({ ...unit, usedFallback: true });
 });
 

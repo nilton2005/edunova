@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { profiles } from '../data/seed.js';
+import { getProfile, saveProfile } from '../data/db.js';
 
 export const duel = Router();
 
@@ -24,11 +24,12 @@ duel.get('/ghost-opponent', (req, res) => {
 // Premia a la Liga de Maestría (calidad de preguntas) y suma NovaCoins.
 duel.post('/result', (req, res) => {
   const { studentId, won = false, questionsCreated = 0 } = req.body ?? {};
-  const profile = profiles.find((p) => p.studentId === studentId);
+  const profile = studentId ? getProfile(studentId) : undefined;
   if (!profile) return res.status(404).json({ error: 'Estudiante no encontrado' });
   const xp = (won ? 100 : 40) + Number(questionsCreated) * 10;
   const coins = won ? 30 : 10;
   profile.leagues.masteryPoints += xp;
   profile.novaCoins += coins;
+  saveProfile(profile);
   res.json({ xp, coins, profile });
 });

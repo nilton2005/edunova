@@ -10,7 +10,8 @@ API y contratos de datos de EduNova, plataforma de aprendizaje colaborativo, gam
 apps/api/                   API Node + Express + TypeScript
   src/routes/               Un archivo por dominio (ai, units, teacher, gamification, analytics, auth)
   src/services/ai.ts        IA simulada (sin API key): respuestas fijas con latencia falsa
-  src/data/seed.ts          Datos semilla en memoria
+  src/data/seed.ts          Datos semilla (se cargan a la DB la primera vez)
+  src/data/db.ts            SQLite (better-sqlite3): usuarios, unidades y perfiles persisten
 packages/shared-types/      Contrato de datos compartido con el frontend
 docs/                       Alcance y prompts pedagógicos
 ```
@@ -22,7 +23,10 @@ cp .env.example .env
 npm install
 npm run dev        # http://localhost:4000
 npm run typecheck
+npm run db:reset   # borra apps/api/data/ y vuelve a la semilla (parar el servidor antes)
 ```
+
+La base de datos es el archivo `apps/api/data/edunova.db` (ignorado por git). Se crea y se llena sola al arrancar.
 
 Prueba rápida: `curl localhost:4000/api/health`
 
