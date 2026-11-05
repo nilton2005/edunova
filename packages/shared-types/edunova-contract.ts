@@ -77,6 +77,7 @@ export interface LearningUnit {
 
 export interface GamificationAndBenchmarkProfile {
   studentId: string;
+  alias?: string; // se rellena en /api/leagues/leaderboard
   learningContext: LearningContext;
   institutionName?: string;
   familyTutorLinkedId?: string;
