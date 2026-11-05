@@ -116,6 +116,53 @@ export interface ExplainableAlert {
   rubricCriterionId: string;
 }
 
+// ---- Dominio por criterio de rúbrica (RF-02) ----
+export interface CriterionMastery {
+  rubricCriterionId: string;
+  topicName: string;
+  masteryPercent: number; // 0-100
+}
+
+// Lo que ve el propio estudiante, su tutor o su docente.
+// Sin detalle por criterio: la rúbrica es oculta para el estudiante.
+export interface StudentProfile extends GamificationAndBenchmarkProfile {
+  alias: string;
+  ageTier?: AgeTier;
+  classroomCode?: string;
+  overallProgressPercent: number;
+}
+
+// Solo docente del aula. Safe-Play: alias, nunca apellidos.
+export interface ClassStudent {
+  studentId: string;
+  alias: string;
+  ageTier?: AgeTier;
+  streakDays: number;
+  division: GamificationAndBenchmarkProfile['leagues']['division'];
+  overallMasteryPercent: number;
+  needsSupport: boolean;
+  mastery: CriterionMastery[];
+}
+
+// Radar de Talentos (RF-04): sugerencias exploratorias, nunca etiquetas clínicas.
+export interface TalentSignal {
+  studentId: string;
+  alias: string;
+  creativity: number; // calidad de preguntas creadas en Duelo
+  collaboration: number; // ayudas en Tablero
+  logic: number; // Labs 3D
+}
+
+export interface ClassAnalytics {
+  classId: string;
+  studentCount: number;
+  averageMasteryPercent: number;
+  criteria: Array<CriterionMastery & { studentsNeedingSupport: number }>;
+  alerts: ExplainableAlert[];
+  talents: TalentSignal[];
+  talentDisclaimer: string;
+}
+
 // ---- Benchmark (RF-05) ----
 export interface BenchmarkResult {
   studentId: string;
@@ -147,3 +194,7 @@ export interface LabMissionComplete {
 // GET  /api/leagues/leaderboard          -> GamificationAndBenchmarkProfile[]
 // GET  /api/benchmark/external/:studentId-> BenchmarkResult
 // GET  /api/analytics/explainable-alerts -> ExplainableAlert[]
+// GET  /api/students/:id/profile         -> StudentProfile   (estudiante, su tutor o su docente)
+// GET  /api/classes/:code/students       -> ClassStudent[]   (solo docente del aula)
+// GET  /api/classes/:code/analytics      -> ClassAnalytics   (solo docente del aula)
+// Estos tres piden: Authorization: Bearer <token de /api/auth/login>

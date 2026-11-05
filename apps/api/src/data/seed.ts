@@ -1,6 +1,5 @@
 import type {
   BenchmarkResult,
-  ExplainableAlert,
   GamificationAndBenchmarkProfile,
   HandwrittenAnalysis,
   LearningUnit,
@@ -14,6 +13,9 @@ export const users: User[] = [
   { id: 'u-student-1', role: 'STUDENT', alias: 'Gloria', ageTier: 'AVENTURERO_10_12', classroomCode: 'EDU-402' },
   { id: 'u-student-2', role: 'STUDENT', alias: 'Mateo', ageTier: 'EXPLORADOR_7_9', classroomCode: 'EDU-402' },
   { id: 'u-student-3', role: 'STUDENT', alias: 'Sofía', ageTier: 'CREADOR_13_15', classroomCode: 'EDU-402' },
+  { id: 'u-student-seed-5', role: 'STUDENT', alias: 'Valentina', ageTier: 'AVENTURERO_10_12', classroomCode: 'EDU-402' },
+  { id: 'u-student-seed-6', role: 'STUDENT', alias: 'Diego', ageTier: 'AVENTURERO_10_12', classroomCode: 'EDU-402' },
+  { id: 'u-student-seed-9', role: 'STUDENT', alias: 'Isabella', ageTier: 'AVENTURERO_10_12', classroomCode: 'EDU-402' },
   { id: 'u-family-1', role: 'FAMILY_TUTOR', alias: 'Mamá de Gloria' },
 ];
 
@@ -118,12 +120,24 @@ export const units: LearningUnit[] = [solarSystemUnit, fractionsUnit];
 
 const divisions = ['BRONCE', 'PLATA', 'ORO', 'SUPERNOVA'] as const;
 const aliases = ['Gloria', 'Mateo', 'Sofía', 'Lucas', 'Valentina', 'Diego', 'Camila', 'Andrés', 'Isabella', 'Samuel'];
-const schools = ['Colegio San Martín', 'I.E. Los Andes', 'Escuela Rural Esperanza', undefined];
+// Los índices 0, 1, 2, 4, 5 y 8 son el aula EDU-402 (ver `users`); el resto compite desde fuera.
+const contexts: Array<[GamificationAndBenchmarkProfile['learningContext'], string | undefined]> = [
+  ['SCHOOL_CLASSROOM', 'Colegio San Martín'],
+  ['SCHOOL_CLASSROOM', 'Colegio San Martín'],
+  ['SCHOOL_CLASSROOM', 'Colegio San Martín'],
+  ['INDEPENDENT_HOME', undefined],
+  ['SCHOOL_CLASSROOM', 'Colegio San Martín'],
+  ['SCHOOL_CLASSROOM', 'Colegio San Martín'],
+  ['EXTERNAL_INSTITUTION', 'I.E. Los Andes'],
+  ['INDEPENDENT_HOME', undefined],
+  ['SCHOOL_CLASSROOM', 'Colegio San Martín'],
+  ['EXTERNAL_INSTITUTION', 'Escuela Rural Esperanza'],
+];
 
 export const profiles: GamificationAndBenchmarkProfile[] = aliases.map((alias, i) => ({
   studentId: i < 3 ? `u-student-${i + 1}` : `u-student-seed-${i + 1}`,
-  learningContext: i % 4 === 3 ? 'INDEPENDENT_HOME' : i % 4 === 2 ? 'EXTERNAL_INSTITUTION' : 'SCHOOL_CLASSROOM',
-  institutionName: schools[i % 4],
+  learningContext: contexts[i][0],
+  institutionName: contexts[i][1],
   familyTutorLinkedId: i === 0 ? 'u-family-1' : undefined,
   streakDays: 12 - i,
   novaCoins: 1240 - i * 90,
@@ -140,22 +154,40 @@ export const aliasByStudent: Record<string, string> = Object.fromEntries(
   profiles.map((p, i) => [p.studentId, aliases[i]]),
 );
 
-export const explainableAlerts: ExplainableAlert[] = [
-  {
-    id: 'al-1',
-    classId: 'EDU-402',
-    message: '34% del aula comprende el numerador pero falla al hallar el denominador común en sumas heterogéneas.',
-    affectedPercent: 34,
-    rubricCriterionId: 'rc-frac-1',
-  },
-  {
-    id: 'al-2',
-    classId: 'EDU-402',
-    message: '22% del aula confunde planetas rocosos con gigantes gaseosos.',
-    affectedPercent: 22,
-    rubricCriterionId: 'rc-solar-2',
-  },
-];
+// Dominio inicial por criterio (RF-02), en el orden de `criterionIds`.
+const criterionIds = ['rc-solar-1', 'rc-solar-2', 'rc-solar-3', 'rc-frac-1'];
+const masteryByStudent: Record<string, number[]> = {
+  'u-student-1': [92, 85, 80, 72],
+  'u-student-2': [78, 55, 70, 48],
+  'u-student-3': [95, 90, 88, 84],
+  'u-student-seed-5': [80, 74, 68, 66],
+  'u-student-seed-6': [70, 62, 60, 52],
+  'u-student-seed-9': [85, 78, 75, 70],
+};
+
+export const masterySeed = profiles.flatMap((p) =>
+  criterionIds.map((criterionId, i) => ({
+    studentId: p.studentId,
+    criterionId,
+    percent: (masteryByStudent[p.studentId] ?? [65, 60, 55, 50])[i],
+  })),
+);
+
+// Texto de la alerta explicable por criterio (RF-04). El porcentaje se calcula con el dominio real.
+export const alertDiagnosis: Record<string, string> = {
+  'rc-frac-1': 'comprende el numerador pero falla al hallar el denominador común en sumas heterogéneas',
+  'rc-solar-2': 'confunde planetas rocosos con gigantes gaseosos',
+};
+
+// Radar de Talentos (simulado, ver docs/ALCANCE.md).
+export const talentSeed: Record<string, { creativity: number; collaboration: number; logic: number }> = {
+  'u-student-1': { creativity: 82, collaboration: 74, logic: 88 },
+  'u-student-2': { creativity: 90, collaboration: 68, logic: 55 },
+  'u-student-3': { creativity: 76, collaboration: 60, logic: 94 },
+  'u-student-seed-5': { creativity: 64, collaboration: 92, logic: 70 },
+  'u-student-seed-6': { creativity: 58, collaboration: 86, logic: 62 },
+  'u-student-seed-9': { creativity: 72, collaboration: 70, logic: 78 },
+};
 
 export function benchmarkFor(studentId: string): BenchmarkResult {
   const idx = Math.max(0, profiles.findIndex((p) => p.studentId === studentId));
