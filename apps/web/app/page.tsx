@@ -159,17 +159,17 @@ export default function Home() {
 
             <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
               <a
-                href="/estudiante"
+                href="/login"
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#5636D9] px-6 py-3.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(86,54,217,0.28)] transition-transform hover:-translate-y-0.5"
               >
                 <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden>
                   <path d="M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 12a4 4 0 0 0-4 4v1h12v-1a4 4 0 0 0-4-4H6Z" />
                   <path d="M15.5 6.5V5h-1v1.5H13v1h1.5V9h1V7.5H17v-1h-1.5Z" />
                 </svg>
-                Crear cuenta gratis
+                Elegir Rol (Demo)
               </a>
               <a
-                href="/estudiante"
+                href="/login"
                 className="inline-flex items-center justify-center gap-2 rounded-2xl border-[1.5px] border-[#17164F]/25 bg-white px-6 py-3.5 text-sm font-bold text-[#17164F] transition-colors hover:border-[#5636D9] hover:text-[#5636D9]"
               >
                 <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4" aria-hidden>
@@ -285,11 +285,11 @@ export default function Home() {
           <span>📘 Personal Social</span>
           <span>🧪 Ciencia y Tecnología</span>
           <span>🔢 Matemática</span>
-          <a href="/estudiante" className="font-bold text-[#5636D9] hover:underline">
+          <a href="/login" className="font-bold text-[#5636D9] hover:underline">
             Demo estudiante →
           </a>
           <a href="/docente" className="font-bold text-[#17164F] hover:underline">
-            Demo docente →
+            Demo docente →</a> <a href="/familia" className="font-bold text-[#E11D48] hover:underline">Demo familia →
           </a>
         </div>
       </footer>
