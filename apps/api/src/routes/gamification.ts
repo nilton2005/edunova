@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { LabMissionComplete } from '../../../../packages/shared-types/edunova-contract';
 import { getProfile, listProfiles, saveProfile } from '../data/db.js';
 import { aliasByStudent, benchmarkFor } from '../data/seed.js';
+import { recordMissionMastery } from '../services/analytics.js';
 
 export const gamification = Router();
 
@@ -21,12 +22,13 @@ gamification.get('/benchmark/external/:studentId', (req, res) => {
 
 // POST /api/labs/complete-mission  body: LabMissionComplete & { studentId }
 gamification.post('/labs/complete-mission', (req, res) => {
-  const { studentId, rewardXP = 0, rewardCoins = 0 } = (req.body ?? {}) as Partial<LabMissionComplete> & { studentId?: string };
+  const { studentId, subtopicId, rewardXP = 0, rewardCoins = 0 } = (req.body ?? {}) as Partial<LabMissionComplete> & { studentId?: string };
   const profile = studentId ? getProfile(studentId) : undefined;
   if (!profile) return res.status(404).json({ error: 'Estudiante no encontrado' });
   profile.leagues.masteryPoints += rewardXP;
   profile.novaCoins += rewardCoins;
   saveProfile(profile);
+  if (subtopicId) recordMissionMastery(profile.studentId, subtopicId);
   res.json(profile);
 });
 

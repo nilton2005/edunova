@@ -47,7 +47,12 @@ Prueba rápida: `curl localhost:4000/api/health`
 | GET | `/api/duel/ghost-opponent?ageTier=` | semilla, por rango de edad |
 | POST | `/api/duel/result` | en memoria, suma XP y NovaCoins |
 | GET | `/api/passport/:studentId` | JSON de competencias + QR en SVG |
-| GET | `/api/analytics/explainable-alerts` | semilla |
+| GET | `/api/analytics/explainable-alerts` | calculado con el dominio del aula |
+| GET | `/api/students/:id/profile` | con token: estudiante, su tutor o su docente |
+| GET | `/api/classes/:code/students` | con token: solo docente del aula |
+| GET | `/api/classes/:code/analytics` | con token: solo docente del aula |
+
+Los endpoints con token piden `Authorization: Bearer <token>`, con el `token` que devuelve `/api/auth/login`. Ejemplo de docente: `{"userId":"u-teacher-1"}`, aula `EDU-402`.
 
 ## Cómo trabajar
 - Lee [CLAUDE.md](CLAUDE.md) y [docs/ALCANCE.md](docs/ALCANCE.md).

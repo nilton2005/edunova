@@ -2,7 +2,9 @@
 
 Hackathon Hack4Edu 2026. Entrega en **48 horas**. Prioridad: que el demo de 3 minutos funcione sin fallos.
 
-Este repo es el **backend** (Node + Express + TypeScript) y el contrato de datos. El frontend vive en https://github.com/naohan/EduNova (`edunova-frontend/`, Next.js 16 + React 19 + Tailwind 4). Sus rutas están en español (`/estudiante`, `/docente`); el backend se adapta a ellas.
+Este repo es el **backend** (Node + Express + TypeScript) y el contrato de datos. El frontend vive en https://github.com/naohan/EduNova (`edunova-frontend/`, Next.js 16 + React 19 + Tailwind 4). 
+
+**El Plan Maestro es la fuente de verdad del backend.** Los datos y endpoints siguen el plan (por ejemplo, % de dominio por criterio de rúbrica), no los datos fijos de los `data.ts` del frontend. Si no coinciden, se adapta el frontend.
 
 ## Reglas obligatorias
 1. **Tipos:** importa SIEMPRE de `packages/shared-types/edunova-contract.ts`. No dupliques ni redefinas tipos. Si falta algo, pide cambio al líder.
