@@ -8,7 +8,7 @@ Este repo es el **backend** (Node + Express + TypeScript) y el contrato de datos
 1. **Tipos:** importa SIEMPRE de `packages/shared-types/edunova-contract.ts`. No dupliques ni redefinas tipos. Si falta algo, pide cambio al líder.
 2. **Rutas del API:** una por archivo de dominio en `apps/api/src/routes/`. No metas todo en `index.ts`.
 3. **Ramas:** `feat/<modulo>-<tarea>`. PR pequeños a `main`. Nunca push directo a `main`.
-4. **IA con respaldo (RNF-03):** todo endpoint de IA usa `withFallback` de `services/ai.ts`. Si el LLM tarda más de 4 s o falla, responde con datos pre-guardados y `usedFallback: true`.
+4. **IA simulada, sin API key (decisión del equipo):** no se usa ningún LLM ni se piden claves. Todo endpoint de IA usa `simulate` de `services/ai.ts`: respuesta determinista con latencia falsa de ~1 s. `usedFallback` queda siempre en `true`. No agregues dependencias de proveedores de IA.
 5. **Datos simulados:** ligas, percentiles, Copa, Fantasma y Pasaporte QR usan datos semilla. Deben verse reales.
 6. **Safe-Play:** solo alias, avatar, rango de edad e institución. Nunca apellidos, teléfonos ni geolocalización.
 7. **Sin secretos en el repo:** las claves van en `.env` (ignorado por git). Repo público.

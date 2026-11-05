@@ -9,7 +9,7 @@ API y contratos de datos de EduNova, plataforma de aprendizaje colaborativo, gam
 ```
 apps/api/                   API Node + Express + TypeScript
   src/routes/               Un archivo por dominio (ai, units, teacher, gamification, analytics, auth)
-  src/services/ai.ts        Respaldo determinista de IA (RNF-03)
+  src/services/ai.ts        IA simulada (sin API key): respuestas fijas con latencia falsa
   src/data/seed.ts          Datos semilla en memoria
 packages/shared-types/      Contrato de datos compartido con el frontend
 docs/                       Alcance y prompts pedagógicos
@@ -26,16 +26,16 @@ npm run typecheck
 
 Prueba rápida: `curl localhost:4000/api/health`
 
-## Endpoints (todos responden hoy con datos semilla o respaldo)
+## Endpoints (todos responden con datos semilla; la IA es simulada, sin API key)
 | Método | Ruta | Estado |
 |---|---|---|
 | POST | `/api/auth/login` | demo, 5 usuarios de prueba |
 | GET | `/api/units`, `/api/units/:id` | semilla (Sistema Solar, Fracciones) |
-| POST | `/api/ai/ingest-document` | respaldo; falta PDF + LLM (#4) |
+| POST | `/api/ai/ingest-document` | simulado (elige unidad por palabras clave) |
 | PUT | `/api/teacher/approve-rubric` | listo |
-| POST | `/api/ai/analyze-handwritten-photo` | respaldo; falta multimodal (#12) |
-| POST | `/api/ai/validate-duel-question` | heurística simple |
-| POST | `/api/ai/family-home-explainer` | respaldo |
+| POST | `/api/ai/analyze-handwritten-photo` | simulado (hoja de prueba fija) |
+| POST | `/api/ai/validate-duel-question` | simulado (heurística simple) |
+| POST | `/api/ai/family-home-explainer` | simulado |
 | GET | `/api/leagues/leaderboard?league=mastery\|effort` | semilla |
 | GET | `/api/benchmark/external/:studentId` | semilla |
 | POST | `/api/labs/complete-mission` | en memoria |

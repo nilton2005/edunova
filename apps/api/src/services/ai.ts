@@ -1,26 +1,16 @@
-// RNF-03: todo endpoint de IA responde con el LLM en vivo o, si falla o tarda más de 4 s,
-// con un respaldo determinista. Sin LLM_API_KEY siempre se usa el respaldo.
+// Decisión del equipo: NO usamos API key de IA. Todos los endpoints "de IA" son simulados
+// con respuestas deterministas y una latencia falsa para que el demo se vea real.
+// `usedFallback` se mantiene en el contrato por compatibilidad y siempre vale true.
 
-export const AI_TIMEOUT_MS = 4000;
+const MIN_DELAY_MS = 700;
+const MAX_DELAY_MS = 1600;
 
-export interface AiResult<T> {
-  value: T;
-  usedFallback: boolean;
-}
+export const fakeLatency = (ms = MIN_DELAY_MS + Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS)) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-export async function withFallback<T>(live: (() => Promise<T>) | null, fallback: () => T): Promise<AiResult<T>> {
-  if (!live || !process.env.LLM_API_KEY) {
-    return { value: fallback(), usedFallback: true };
-  }
-  try {
-    const value = await Promise.race([
-      live(),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), AI_TIMEOUT_MS)),
-    ]);
-    return { value, usedFallback: false };
-  } catch {
-    return { value: fallback(), usedFallback: true };
-  }
+export async function simulate<T>(produce: () => T): Promise<T> {
+  await fakeLatency();
+  return produce();
 }
 
 const LAB_KEYWORDS: Array<[RegExp, 'SOLAR_SYSTEM' | 'HUMAN_BODY' | 'MOLECULAR_LAB' | 'STUDYFI_PHYSICS' | 'EARTH_OS']> = [
