@@ -1,0 +1,12 @@
+---
+description: Reglas del proyecto EduNova
+alwaysApply: true
+---
+
+Lee `CLAUDE.md` en la raíz y síguelo al pie de la letra.
+
+- Importa tipos solo de `packages/shared-types/edunova-contract.ts`.
+- Trabaja solo dentro de tu carpeta asignada (`features/<modulo>` o `apps/<app>`).
+- Todo endpoint de IA necesita respaldo determinista (`usedFallback`).
+- Nunca subas claves ni archivos `.env`.
+- Textos de interfaz en español, código en inglés.
