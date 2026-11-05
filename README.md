@@ -41,7 +41,9 @@ Prueba rápida: `curl localhost:4000/api/health`
 | POST | `/api/ai/analyze-handwritten-photo` | simulado (hoja de prueba fija) |
 | POST | `/api/ai/validate-duel-question` | simulado (heurística simple) |
 | POST | `/api/ai/family-home-explainer` | simulado |
-| GET | `/api/leagues/leaderboard?league=mastery\|effort` | semilla |
+| GET | `/api/leagues/leaderboard?league=mastery\|effort` | solo datos públicos de cada fila (Safe-Play) |
+| GET | `/api/shop/items` | catálogo de accesorios |
+| POST | `/api/shop/buy`, `/api/shop/equip` | con token de estudiante; el saldo se valida en el servidor |
 | GET | `/api/benchmark/external/:studentId` | semilla |
 | POST | `/api/labs/complete-mission` | persiste perfil y dominio en PostgreSQL |
 | POST | `/api/progress/sync` | persiste progreso en PostgreSQL |

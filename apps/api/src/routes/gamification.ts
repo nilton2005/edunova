@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import type { LabMissionComplete } from '../../../../packages/shared-types/edunova-contract';
+import type { LabMissionComplete, LeaderboardEntry } from '../../../../packages/shared-types/edunova-contract';
 import { getProfile, listProfiles, saveProfile } from '../data/db.js';
 import { aliasByStudent, benchmarkFor } from '../data/seed.js';
 import { asyncHandler } from '../services/async-handler.js';
@@ -10,10 +10,17 @@ export const gamification = Router();
 // GET /api/leagues/leaderboard?league=mastery|effort
 gamification.get('/leagues/leaderboard', asyncHandler(async (req, res) => {
   const key = req.query.league === 'effort' ? 'effortPoints' : 'masteryPoints';
-  const sorted = (await listProfiles())
+  const rows: LeaderboardEntry[] = (await listProfiles())
     .sort((a, b) => b.leagues[key] - a.leagues[key])
-    .map((p) => ({ ...p, alias: aliasByStudent[p.studentId] }));
-  res.json(sorted);
+    .map((p) => ({
+      studentId: p.studentId,
+      alias: aliasByStudent[p.studentId],
+      institutionName: p.institutionName,
+      masteryPoints: p.leagues.masteryPoints,
+      effortPoints: p.leagues.effortPoints,
+      division: p.leagues.division,
+    }));
+  res.json(rows);
 }));
 
 // GET /api/benchmark/external/:studentId

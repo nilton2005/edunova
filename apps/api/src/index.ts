@@ -7,6 +7,7 @@ import { classes } from './routes/classes.js';
 import { duel } from './routes/duel.js';
 import { gamification } from './routes/gamification.js';
 import { passport } from './routes/passport.js';
+import { shop } from './routes/shop.js';
 import { students } from './routes/students.js';
 import { teacher } from './routes/teacher.js';
 import { unitsRouter } from './routes/units.js';
@@ -31,6 +32,7 @@ app.use('/api/students', students);
 app.use('/api/classes', classes);
 app.use('/api/duel', duel);
 app.use('/api/passport', passport);
+app.use('/api/shop', shop);
 app.use('/api', gamification);
 
 const port = Number(process.env.PORT ?? 4000);
