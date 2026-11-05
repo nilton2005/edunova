@@ -6,7 +6,7 @@ import type {
   User,
 } from '../../../../packages/shared-types/edunova-contract';
 
-// Datos semilla en memoria. Issue #2: reemplazar por base de datos real.
+// Datos semilla que se insertan en PostgreSQL al inicializar la base.
 
 export const users: User[] = [
   { id: 'u-teacher-1', role: 'TEACHER', alias: 'Profe Ana', classroomCode: 'EDU-402' },

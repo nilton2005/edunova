@@ -10,6 +10,7 @@ import { passport } from './routes/passport.js';
 import { students } from './routes/students.js';
 import { teacher } from './routes/teacher.js';
 import { unitsRouter } from './routes/units.js';
+import { initializeDatabase } from './data/db.js';
 
 const app = express();
 // WEB_ORIGIN admite varios orígenes separados por coma (el front local y el desplegado).
@@ -33,4 +34,9 @@ app.use('/api/passport', passport);
 app.use('/api', gamification);
 
 const port = Number(process.env.PORT ?? 4000);
-app.listen(port, () => console.log(`EduNova API en http://localhost:${port}`));
+initializeDatabase()
+  .then(() => app.listen(port, () => console.log(`EduNova API en http://localhost:${port}`)))
+  .catch((error: unknown) => {
+    console.error('No se pudo inicializar la base de datos PostgreSQL:', error);
+    process.exitCode = 1;
+  });

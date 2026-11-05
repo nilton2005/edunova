@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { LearningUnit } from '../../../../packages/shared-types/edunova-contract';
 import { saveUnit } from '../data/db.js';
 import { fractionsUnit, handwrittenFallback, solarSystemUnit } from '../data/seed.js';
+import { asyncHandler } from '../services/async-handler.js';
 import { detectLab, simulate } from '../services/ai.js';
 
 // Todos los endpoints de IA son simulados (sin API key). Ver services/ai.ts.
@@ -9,7 +10,7 @@ export const ai = Router();
 
 // POST /api/ai/ingest-document  body: { title?, text }  -> LearningUnit en DRAFT
 // Simulación: elige la unidad semilla según palabras clave del texto.
-ai.post('/ingest-document', async (req, res) => {
+ai.post('/ingest-document', asyncHandler(async (req, res) => {
   const { title, text = '' } = req.body ?? {};
   const base = await simulate(() =>
     structuredClone(detectLab(`${title ?? ''} ${text}`) === 'SOLAR_SYSTEM' ? solarSystemUnit : fractionsUnit),
@@ -21,9 +22,9 @@ ai.post('/ingest-document', async (req, res) => {
     status: 'DRAFT',
     rubric: base.rubric.map((c) => ({ ...c, approvedByTeacher: false })),
   };
-  saveUnit(unit);
+  await saveUnit(unit);
   res.json({ ...unit, usedFallback: true });
-});
+}));
 
 // POST /api/ai/analyze-handwritten-photo  body: { imageBase64?, explanation? }
 // Simulación: siempre analiza la hoja de prueba "1/3 + 1/4".

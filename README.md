@@ -11,7 +11,7 @@ apps/api/                   API Node + Express + TypeScript
   src/routes/               Un archivo por dominio (ai, units, teacher, gamification, analytics, auth)
   src/services/ai.ts        IA simulada (sin API key): respuestas fijas con latencia falsa
   src/data/seed.ts          Datos semilla (se cargan a la DB la primera vez)
-  src/data/db.ts            SQLite (better-sqlite3): usuarios, unidades y perfiles persisten
+  src/data/db.ts            PostgreSQL: usuarios, unidades, perfiles y dominio por criterio
 packages/shared-types/      Contrato de datos compartido con el frontend
 docs/                       Alcance y prompts pedagógicos
 ```
@@ -20,20 +20,21 @@ docs/                       Alcance y prompts pedagógicos
 ```bash
 cd apps/api
 cp .env.example .env
+# Configura DATABASE_URL con tu PostgreSQL local antes de arrancar
 npm install
 npm run dev        # http://localhost:4000
 npm run typecheck
-npm run db:reset   # borra apps/api/data/ y vuelve a la semilla (parar el servidor antes)
+npm run db:reset   # borra los datos de PostgreSQL y vuelve a la semilla
 ```
 
-La base de datos es el archivo `apps/api/data/edunova.db` (ignorado por git). Se crea y se llena sola al arrancar.
+Las tablas se crean y se llenan con datos semilla al arrancar por primera vez. Las inserciones iniciales no sobrescriben el progreso existente. `db:reset` es destructivo: no lo ejecutes contra una base con datos que quieras conservar.
 
 Prueba rápida: `curl localhost:4000/api/health`
 
 ## Endpoints (todos responden con datos semilla; la IA es simulada, sin API key)
 | Método | Ruta | Estado |
 |---|---|---|
-| POST | `/api/auth/login` | demo, 5 usuarios de prueba |
+| POST | `/api/auth/login` | demo, usuarios de prueba |
 | GET | `/api/units`, `/api/units/:id` | semilla (Sistema Solar, Fracciones) |
 | POST | `/api/ai/ingest-document` | simulado (elige unidad por palabras clave) |
 | PUT | `/api/teacher/approve-rubric` | listo |
@@ -42,10 +43,10 @@ Prueba rápida: `curl localhost:4000/api/health`
 | POST | `/api/ai/family-home-explainer` | simulado |
 | GET | `/api/leagues/leaderboard?league=mastery\|effort` | semilla |
 | GET | `/api/benchmark/external/:studentId` | semilla |
-| POST | `/api/labs/complete-mission` | en memoria |
-| POST | `/api/progress/sync` | en memoria |
+| POST | `/api/labs/complete-mission` | persiste perfil y dominio en PostgreSQL |
+| POST | `/api/progress/sync` | persiste progreso en PostgreSQL |
 | GET | `/api/duel/ghost-opponent?ageTier=` | semilla, por rango de edad |
-| POST | `/api/duel/result` | en memoria, suma XP y NovaCoins |
+| POST | `/api/duel/result` | persiste XP y NovaCoins en PostgreSQL |
 | GET | `/api/passport/:studentId` | JSON de competencias + QR en SVG |
 | GET | `/api/analytics/explainable-alerts` | calculado con el dominio del aula |
 | GET | `/api/students/:id/profile` | con token: estudiante, su tutor o su docente |
@@ -55,23 +56,21 @@ Prueba rápida: `curl localhost:4000/api/health`
 Los endpoints con token piden `Authorization: Bearer <token>`, con el `token` que devuelve `/api/auth/login`. Ejemplo de docente: `{"userId":"u-teacher-1"}`, aula `EDU-402`.
 
 ## Desplegar en Render
-El archivo [render.yaml](render.yaml) describe el servicio. Pasos (una sola vez, con la cuenta de GitHub del dueño del repo):
+El archivo [render.yaml](render.yaml) define el servicio y una base PostgreSQL conectada. Hay dos formas de desplegar:
 
-1. Entra en https://render.com e inicia sesión con GitHub.
-2. **New → Blueprint**, elige `nilton2005/edunova` y pulsa **Apply**. Render crea el servicio `edunova-api` en el plan gratis.
-3. Cuando termine, abre `https://<tu-servicio>.onrender.com/api/health`. Debe responder `{"ok":true,...}`.
-4. En el frontend, pon esa URL en `.env.local` (`NEXT_PUBLIC_API_URL=https://<tu-servicio>.onrender.com`) y reinicia `npm run dev`.
-5. Si el frontend también se despliega, agrega su URL a `WEB_ORIGIN` en Render (*Environment*), separada por coma.
+1. **Blueprint (recomendado):** en Render, ve a **New → Blueprint**, elige `nilton2005/edunova` y pulsa **Apply**. Se crean el servicio `edunova-api` y la base `edunova-db`; Render inyecta la URL interna como `DATABASE_URL`.
+2. **Si ya creaste el Web Service manualmente:** crea también una base PostgreSQL en Render, preferiblemente en la misma región. En el Environment del backend configura `DATABASE_URL` con la **Internal Database URL** que muestra la base. Si usas la URL externa, configura también `DATABASE_SSL=true`.
+3. En ambos casos, mantén `NODE_VERSION=22`. El backend crea las tablas y carga las semillas al iniciar.
+4. Cuando termine el despliegue, abre `https://<tu-servicio>.onrender.com/api/health`. Debe responder `{"ok":true,...}`.
+5. En el frontend, pon esa URL en `.env.local` (`NEXT_PUBLIC_API_URL=https://<tu-servicio>.onrender.com`) y reinicia `npm run dev`.
+6. Si el frontend también se despliega, configura `WEB_ORIGIN` con su URL en Render (*Environment*).
 
 Cada commit a `main` redespliega solo.
 
 **Límites del plan gratis, importantes para el demo:**
-- El servicio **se duerme tras 15 minutos sin uso**. La primera llamada después tarda de 30 a 60 s, y el cliente del frontend corta a los 4 s y muestra sus datos fijos. Antes de presentar, abre `/api/health` y espera a que responda. También sirve un monitor gratis (por ejemplo UptimeRobot) que lo llame cada 5 minutos.
-- El disco **no es persistente**: al dormir, reiniciar o redesplegar, la base de datos vuelve a la semilla. Para el demo es lo esperado; los puntos y unidades creados en pruebas se pierden.
+- El servicio web Free **se duerme tras 15 minutos sin uso**; la base de datos PostgreSQL es un servicio separado y conserva los datos aunque la API se duerma.
+- La base PostgreSQL Free de Render **vence 30 días después de crearla**, aunque tenga actividad. Para conservar datos por más tiempo, actualízala a un plan de pago antes de que venza y sigue las instrucciones de Render.
 - La API es pública: cualquiera con la URL puede llamarla. Los datos son de prueba y el token de demo no está firmado.
-
-## Instalar dependencias
-`apps/api/.npmrc` desactiva los scripts de instalación a propósito. Sin eso, `npm install` con el `package-lock.json` intenta compilar `better-sqlite3` con `node-gyp` y falla en máquinas sin Visual Studio, aunque el paquete ya trae su binario.
 
 ## Cómo trabajar
 - Lee [CLAUDE.md](CLAUDE.md) y [docs/ALCANCE.md](docs/ALCANCE.md).

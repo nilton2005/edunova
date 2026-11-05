@@ -16,49 +16,50 @@ const average = (values: number[]) =>
   values.length ? Math.round(values.reduce((sum, v) => sum + v, 0) / values.length) : 0;
 
 // Criterios aprobados de las unidades publicadas del aula, sin repetir.
-function classCriteria(classId: string): RubricCriterion[] {
+async function classCriteria(classId: string): Promise<RubricCriterion[]> {
   const byId = new Map<string, RubricCriterion>();
-  for (const unit of listUnits()) {
+  for (const unit of await listUnits()) {
     if (unit.classroomCode !== classId || unit.status !== 'PUBLISHED') continue;
     for (const c of unit.rubric) if (!byId.has(c.id)) byId.set(c.id, c);
   }
   return [...byId.values()];
 }
 
-const classMembers = (classId: string) =>
-  listUsers().filter((u) => u.role === 'STUDENT' && u.classroomCode === classId);
+const classMembers = async (classId: string) =>
+  (await listUsers()).filter((u) => u.role === 'STUDENT' && u.classroomCode === classId);
 
-export const overallProgress = (studentId: string) => average(masteryOf(studentId).map((m) => m.percent));
+export async function overallProgress(studentId: string) {
+  return average((await masteryOf(studentId)).map((m) => m.percent));
+}
 
-export function classStudents(classId: string): ClassStudent[] {
-  const criteria = classCriteria(classId);
-  return classMembers(classId).flatMap((user) => {
-    const profile = getProfile(user.id);
-    if (!profile) return [];
-    const percentById = new Map(masteryOf(user.id).map((m) => [m.criterionId, m.percent]));
+export async function classStudents(classId: string): Promise<ClassStudent[]> {
+  const [criteria, members] = await Promise.all([classCriteria(classId), classMembers(classId)]);
+  const students: Array<ClassStudent | undefined> = await Promise.all(members.map(async (user) => {
+    const profile = await getProfile(user.id);
+    if (!profile) return undefined;
+    const percentById = new Map((await masteryOf(user.id)).map((m) => [m.criterionId, m.percent]));
     const mastery: CriterionMastery[] = criteria.map((c) => ({
       rubricCriterionId: c.id,
       topicName: c.topicName,
       masteryPercent: percentById.get(c.id) ?? 0,
     }));
-    return [
-      {
-        studentId: user.id,
-        alias: user.alias,
-        ageTier: user.ageTier,
-        streakDays: profile.streakDays,
-        division: profile.leagues.division,
-        overallMasteryPercent: average(mastery.map((m) => m.masteryPercent)),
-        needsSupport: mastery.some((m) => m.masteryPercent < SUPPORT_THRESHOLD),
-        mastery,
-      },
-    ];
-  });
+    return {
+      studentId: user.id,
+      alias: user.alias,
+      ageTier: user.ageTier,
+      streakDays: profile.streakDays,
+      division: profile.leagues.division,
+      overallMasteryPercent: average(mastery.map((m) => m.masteryPercent)),
+      needsSupport: mastery.some((m) => m.masteryPercent < SUPPORT_THRESHOLD),
+      mastery,
+    };
+  }));
+  return students.filter((student): student is ClassStudent => student !== undefined);
 }
 
-export function classAlerts(classId: string): ExplainableAlert[] {
-  const students = classStudents(classId);
-  return classCriteria(classId).flatMap((c) => {
+export async function classAlerts(classId: string): Promise<ExplainableAlert[]> {
+  const [students, criteria] = await Promise.all([classStudents(classId), classCriteria(classId)]);
+  return criteria.flatMap((c) => {
     const diagnosis = alertDiagnosis[c.id];
     if (!diagnosis || !students.length) return [];
     const affected = students.filter((s) =>
@@ -78,9 +79,9 @@ export function classAlerts(classId: string): ExplainableAlert[] {
   });
 }
 
-export function classAnalytics(classId: string): ClassAnalytics {
-  const students = classStudents(classId);
-  const criteria = classCriteria(classId).map((c) => {
+export async function classAnalytics(classId: string): Promise<ClassAnalytics> {
+  const [students, classRubric] = await Promise.all([classStudents(classId), classCriteria(classId)]);
+  const criteria = classRubric.map((c) => {
     const rows = students.flatMap((s) => s.mastery.filter((m) => m.rubricCriterionId === c.id));
     return {
       rubricCriterionId: c.id,
@@ -94,7 +95,7 @@ export function classAnalytics(classId: string): ClassAnalytics {
     studentCount: students.length,
     averageMasteryPercent: average(students.map((s) => s.overallMasteryPercent)),
     criteria,
-    alerts: classAlerts(classId),
+    alerts: await classAlerts(classId),
     talents: students.flatMap((s) => {
       const signal = talentSeed[s.studentId];
       return signal ? [{ studentId: s.studentId, alias: s.alias, ...signal }] : [];
@@ -104,9 +105,9 @@ export function classAnalytics(classId: string): ClassAnalytics {
 }
 
 // RF-02: cada misión superada sube el dominio de los criterios de su subtema.
-export function recordMissionMastery(studentId: string, subtopicId: string) {
+export async function recordMissionMastery(studentId: string, subtopicId: string) {
   const criterionIds = new Set(
-    listUnits().flatMap((u) => u.rubric.filter((c) => c.subtopicId === subtopicId).map((c) => c.id)),
+    (await listUnits()).flatMap((u) => u.rubric.filter((c) => c.subtopicId === subtopicId).map((c) => c.id)),
   );
-  for (const id of criterionIds) addMastery(studentId, id, MISSION_MASTERY_GAIN);
+  for (const id of criterionIds) await addMastery(studentId, id, MISSION_MASTERY_GAIN);
 }
