@@ -32,6 +32,13 @@ export async function overallProgress(studentId: string) {
   return average((await masteryOf(studentId)).map((m) => m.percent));
 }
 
+// Tema con menos dominio del estudiante, para el tutor y el docente.
+export async function weakestTopic(studentId: string) {
+  const [mastery, units] = await Promise.all([masteryOf(studentId), listUnits()]);
+  const lowest = [...mastery].sort((a, b) => a.percent - b.percent)[0];
+  return units.flatMap((u) => u.rubric).find((c) => c.id === lowest?.criterionId)?.topicName;
+}
+
 export async function classStudents(classId: string): Promise<ClassStudent[]> {
   const [criteria, members] = await Promise.all([classCriteria(classId), classMembers(classId)]);
   const students: Array<ClassStudent | undefined> = await Promise.all(members.map(async (user) => {

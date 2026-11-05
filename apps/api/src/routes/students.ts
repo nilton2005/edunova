@@ -3,7 +3,7 @@ import type { StudentProfile } from '../../../../packages/shared-types/edunova-c
 import { getProfile, listUsers } from '../data/db.js';
 import { aliasByStudent } from '../data/seed.js';
 import { currentUser } from '../services/access.js';
-import { overallProgress } from '../services/analytics.js';
+import { overallProgress, weakestTopic } from '../services/analytics.js';
 import { asyncHandler } from '../services/async-handler.js';
 
 export const students = Router();
@@ -30,6 +30,8 @@ students.get('/:id/profile', asyncHandler(async (req, res) => {
     ageTier: student?.ageTier,
     classroomCode: student?.classroomCode,
     overallProgressPercent: await overallProgress(profile.studentId),
+    // El estudiante no lo recibe: la rúbrica es oculta para él.
+    topicToReinforce: viewer.id === profile.studentId ? undefined : await weakestTopic(profile.studentId),
   };
   res.json(body);
 }));
