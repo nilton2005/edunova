@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 import type { PoolClient } from 'pg';
 import type {
+  AssessmentRecord,
   GamificationAndBenchmarkProfile,
   LearningUnit,
   User,
@@ -71,6 +72,12 @@ async function initialize() {
         percent INTEGER NOT NULL,
         PRIMARY KEY (student_id, criterion_id)
       );
+      CREATE TABLE IF NOT EXISTS assessments (
+        id TEXT PRIMARY KEY,
+        classroom_code TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        json JSONB NOT NULL
+      );
     `);
 
     await seedData(client);
@@ -88,7 +95,7 @@ export async function resetDatabase() {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    await client.query('TRUNCATE TABLE mastery, profiles, units, users');
+    await client.query('TRUNCATE TABLE assessments, mastery, profiles, units, users');
     await seedData(client);
     await client.query('COMMIT');
   } catch (error) {
@@ -175,4 +182,28 @@ export async function addMastery(studentId: string, criterionId: string, delta: 
      DO UPDATE SET percent = LEAST(100, mastery.percent + $3)`,
     [studentId, criterionId, delta],
   );
+}
+
+export async function saveAssessment(assessment: AssessmentRecord) {
+  await ready();
+  await pool.query(
+    `INSERT INTO assessments (id, classroom_code, json) VALUES ($1, $2, $3)
+     ON CONFLICT (id) DO UPDATE SET json = EXCLUDED.json`,
+    [assessment.id, assessment.classroomCode ?? null, JSON.stringify(assessment)],
+  );
+}
+
+export async function getAssessment(id: string) {
+  await ready();
+  const { rows } = await pool.query<{ json: AssessmentRecord }>('SELECT json FROM assessments WHERE id = $1', [id]);
+  return rows[0]?.json;
+}
+
+export async function listAssessments(classroomCode: string) {
+  await ready();
+  const { rows } = await pool.query<{ json: AssessmentRecord }>(
+    'SELECT json FROM assessments WHERE classroom_code = $1 ORDER BY created_at DESC',
+    [classroomCode],
+  );
+  return rows.map((row) => row.json);
 }

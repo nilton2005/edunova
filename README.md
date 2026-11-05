@@ -54,6 +54,10 @@ Prueba rápida: `curl localhost:4000/api/health`
 | GET | `/api/students/:id/profile` | con token: estudiante, su tutor o su docente |
 | GET | `/api/classes/:code/students` | con token: solo docente del aula |
 | GET | `/api/classes/:code/analytics` | con token: solo docente del aula |
+| POST | `/api/ai/validate-hypothesis` | simulado (revisa que haya causa y efecto) |
+| POST | `/api/assess/submit-reasoning` | con token del estudiante: guarda la nota de la IA y suma el bono |
+| GET | `/api/classes/:code/assessments` | con token: solo docente del aula |
+| PUT | `/api/teacher/assessments/:id/override` | con token: el docente reemplaza la nota de la IA |
 
 Los endpoints con token piden `Authorization: Bearer <token>`, con el `token` que devuelve `/api/auth/login`. Ejemplo de docente: `{"userId":"u-teacher-1"}`, aula `EDU-402`.
 

@@ -24,3 +24,22 @@ const LAB_KEYWORDS: Array<[RegExp, 'SOLAR_SYSTEM' | 'HUMAN_BODY' | 'MOLECULAR_LA
 export function detectLab(text: string) {
   return LAB_KEYWORDS.find(([re]) => re.test(text))?.[1] ?? 'NONE';
 }
+
+const HYPOTHESIS_BONUS_XP = 20;
+const MIN_HYPOTHESIS_LENGTH = 20;
+
+// Una hipótesis debe plantear causa y efecto. Simulado: revisa la forma, no la ciencia.
+export function reviewHypothesis(text: string) {
+  const hypothesis = text.trim();
+  if (hypothesis.length < MIN_HYPOTHESIS_LENGTH) {
+    return { valid: false, feedback: 'Cuenta un poco más: ¿qué crees que pasaría y por qué?', bonusXP: 0 };
+  }
+  if (!/\b(si|porque|entonces|debido|por eso|ya que)\b/i.test(hypothesis)) {
+    return { valid: false, feedback: 'Agrega la causa: usa "si..., entonces..." o "porque...".', bonusXP: 0 };
+  }
+  return {
+    valid: true,
+    feedback: 'Buena hipótesis: planteas una causa y un efecto que puedes comprobar en el laboratorio.',
+    bonusXP: HYPOTHESIS_BONUS_XP,
+  };
+}

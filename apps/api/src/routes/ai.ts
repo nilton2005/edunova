@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import type { LearningUnit } from '../../../../packages/shared-types/edunova-contract';
+import type { HypothesisReview, LearningUnit } from '../../../../packages/shared-types/edunova-contract';
 import { saveUnit } from '../data/db.js';
 import { fractionsUnit, handwrittenFallback, solarSystemUnit } from '../data/seed.js';
 import { asyncHandler } from '../services/async-handler.js';
-import { detectLab, simulate } from '../services/ai.js';
+import { detectLab, reviewHypothesis, simulate } from '../services/ai.js';
 
 // Todos los endpoints de IA son simulados (sin API key). Ver services/ai.ts.
 export const ai = Router();
@@ -45,6 +45,13 @@ ai.post('/validate-duel-question', async (req, res) => {
       ? { valid: true, reason: 'La pregunta tiene sustento en el tema.' }
       : { valid: false, reason: 'La pregunta es muy corta. Agrega más detalle del tema.' },
   );
+  res.json(result);
+});
+
+// POST /api/ai/validate-hypothesis  body: { hypothesis, labType? }  -> HypothesisReview
+ai.post('/validate-hypothesis', async (req, res) => {
+  const { hypothesis = '' } = req.body ?? {};
+  const result: HypothesisReview = await simulate(() => reviewHypothesis(String(hypothesis)));
   res.json(result);
 });
 
