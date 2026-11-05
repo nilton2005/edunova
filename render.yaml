@@ -1,0 +1,17 @@
+# Blueprint de Render: https://render.com/docs/blueprint-spec
+# En Render: New > Blueprint > elegir este repo. Se crea el servicio edunova-api.
+services:
+  - type: web
+    name: edunova-api
+    runtime: node
+    plan: free
+    rootDir: apps/api
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Orígenes permitidos por CORS, separados por coma. Agrega aquí la URL del front si se despliega.
+      - key: WEB_ORIGIN
+        value: http://localhost:3000
