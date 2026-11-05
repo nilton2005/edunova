@@ -12,7 +12,12 @@ import { teacher } from './routes/teacher.js';
 import { unitsRouter } from './routes/units.js';
 
 const app = express();
-app.use(cors({ origin: process.env.WEB_ORIGIN ?? 'http://localhost:3000' }));
+// WEB_ORIGIN admite varios orígenes separados por coma (el front local y el desplegado).
+const origins = (process.env.WEB_ORIGIN ?? 'http://localhost:3000')
+  .split(',')
+  .map((o) => o.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+app.use(cors({ origin: origins }));
 app.use(express.json({ limit: '10mb' }));
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'edunova-api' }));
