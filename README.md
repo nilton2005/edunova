@@ -74,5 +74,5 @@ Cada commit a `main` redespliega solo.
 
 ## Cómo trabajar
 - Lee [CLAUDE.md](CLAUDE.md) y [docs/ALCANCE.md](docs/ALCANCE.md).
-- Una rama por tarea: `feat/<modulo>-<tarea>`, PR a `main`.
+- Se sube directo a `main`, sin PRs. Antes de subir, `git pull`.
 - Los tipos viven en `packages/shared-types/edunova-contract.ts`. El frontend copia ese archivo; si cambia, avisa.
