@@ -94,18 +94,10 @@ export function removeHealthRisks(unit: LearningUnit) {
     }
     if (discover.easyReadText) discover.easyReadText = withoutHealthRisks(discover.easyReadText);
     practice.flashcards = practice.flashcards.filter((card) => !isHealthRisk(`${card.front} ${card.back}`));
-    demonstrate.questions = demonstrate.questions
-      .filter(
-        (question) =>
-          !isHealthRisk([question.prompt, question.hint, ...question.options, ...(question.mistakes ?? [])].join(' ')),
-      )
-      .map((question) => {
-        if (!question.mistakes) return question;
-        return {
-          ...question,
-          mistakes: question.mistakes.map((m) => (m ? withoutHealthRisks(m) : '')),
-        };
-      });
+    demonstrate.questions = demonstrate.questions.filter(
+      (question) =>
+        !isHealthRisk([question.prompt, question.hint, ...question.options, ...(question.mistakes ?? [])].join(' ')),
+    );
   }
   return JSON.stringify(unit.subtopics) !== before;
 }

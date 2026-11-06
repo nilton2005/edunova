@@ -40,7 +40,7 @@ Prueba rápida: `curl localhost:4000/api/health`
 |---|---|---|
 | POST | `/api/auth/login` | demo, usuarios de prueba |
 | GET | `/api/units`, `/api/units/:id` | los borradores solo los ve un docente; al estudiante se le quita la rúbrica |
-| POST | `/api/ai/ingest-document` | con token de docente: Gemini lee texto, PDF o imagen y deja un borrador; 60 llamadas por hora; respaldo con aviso si falla |
+| POST | `/api/ai/ingest-document` | con token de docente: Gemini lee texto, PDF o imagen y deja un borrador, con `localContext` opcional para usar ejemplos del lugar; 60 llamadas por hora; respaldo con aviso si falla |
 | PUT | `/api/teacher/approve-rubric` | con token: solo docente del aula |
 | POST | `/api/ai/analyze-handwritten-photo` | simulado (hoja de prueba fija) |
 | POST | `/api/ai/validate-duel-question` | simulado (heurística simple) |
