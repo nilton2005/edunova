@@ -69,3 +69,31 @@ teacher.put(
     res.json({ ok: true, alertId, attendedAt });
   })
 );
+
+// PUT /api/teacher/units/:id/share  body: { shared: boolean }
+// Comparte o deja de compartir una unidad publicada con las familias
+teacher.put('/units/:id/share', asyncHandler(async (req, res) => {
+  const viewer = await currentUser(req);
+  if (!viewer) return res.status(401).json({ error: 'Falta iniciar sesión' });
+  if (viewer.role !== 'TEACHER') {
+    return res.status(403).json({ error: 'Solo un docente puede compartir unidades con familias' });
+  }
+
+  const unit = await getUnit(req.params.id);
+  if (!unit) return res.status(404).json({ error: 'Unidad no encontrada' });
+  if (unit.teacherId !== viewer.id) {
+    return res.status(403).json({ error: 'Solo el docente dueño de la unidad puede compartirla' });
+  }
+  if (unit.status !== 'PUBLISHED') {
+    return res.status(400).json({ error: 'Solo se pueden compartir unidades publicadas' });
+  }
+
+  const { shared } = req.body ?? {};
+  if (typeof shared !== 'boolean') {
+    return res.status(400).json({ error: 'El campo shared debe ser booleano' });
+  }
+
+  unit.sharedWithFamilies = shared;
+  await saveUnit(unit);
+  res.json(unit);
+}));

@@ -3,6 +3,7 @@ import type {
   FamilyCategory,
   FamilyDraftResponse,
   LearningUnit,
+  SharedFamilyRoute,
   User,
 } from '../../../../packages/shared-types/edunova-contract';
 import { getUnit, listProfiles, listUnits, saveUnit } from '../data/db.js';
@@ -205,4 +206,61 @@ family.put('/units/:id/publish', requireFamily, asyncHandler(async (req, res) =>
   unit.status = 'PUBLISHED';
   await saveUnit(unit);
   res.json(unit);
+}));
+
+// GET /api/family/routes
+// Unidades publicadas por docentes que fueron compartidas con familias
+family.get('/routes', requireFamily, asyncHandler(async (_req, res) => {
+  const units = await listUnits();
+  const sharedRoutes: SharedFamilyRoute[] = units
+    .filter((u) => u.status === 'PUBLISHED' && Boolean(u.sharedWithFamilies))
+    .map((u) => ({
+      id: u.id,
+      title: u.title,
+      familyCategory: u.familyCategory,
+      topicsCount: u.subtopics.length,
+      subtopicsCount: u.subtopics.length,
+    }));
+  res.json(sharedRoutes);
+}));
+
+// POST /api/family/routes/:id/assign
+// Asigna una copia de la ruta docente al hijo del tutor familiar
+family.post('/routes/:id/assign', requireFamily, asyncHandler(async (req, res) => {
+  const viewer = res.locals.viewer as User;
+
+  const profiles = await listProfiles();
+  const childProfile = profiles.find((p) => p.familyTutorLinkedId === viewer.id);
+  if (!childProfile) {
+    return res.status(404).json({ error: 'No se encontró un estudiante vinculado a este tutor familiar' });
+  }
+  const childStudentId = childProfile.studentId;
+
+  // Si ya existe una copia de esa ruta para ese hijo, devuélvela sin crear otra
+  const allUnits = await listUnits();
+  const existing = allUnits.find(
+    (u) => u.sourceUnitId === req.params.id && u.familyStudentId === childStudentId,
+  );
+  if (existing) {
+    return res.json(existing);
+  }
+
+  const sourceUnit = await getUnit(req.params.id);
+  if (!sourceUnit || sourceUnit.status !== 'PUBLISHED' || !sourceUnit.sharedWithFamilies) {
+    return res.status(404).json({ error: 'Ruta docente no encontrada o no disponible para familias' });
+  }
+
+  // Copia con structuredClone a un id nuevo
+  const newUnit: LearningUnit = structuredClone(sourceUnit);
+  newUnit.id = `unit-assigned-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  newUnit.familyStudentId = childStudentId;
+  newUnit.teacherId = viewer.id;
+  newUnit.classroomCode = '';
+  newUnit.rubric = [];
+  newUnit.sharedWithFamilies = false;
+  newUnit.sourceUnitId = sourceUnit.id;
+  newUnit.status = 'PUBLISHED';
+
+  await saveUnit(newUnit);
+  res.json(newUnit);
 }));

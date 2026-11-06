@@ -117,7 +117,221 @@ export const fractionsUnit: LearningUnit = {
   ],
 };
 
-export const units: LearningUnit[] = [solarSystemUnit, fractionsUnit];
+export const ahorroUnit: LearningUnit = {
+  id: 'unit-ruta-ahorro',
+  title: 'El ahorro en casa',
+  status: 'PUBLISHED',
+  classroomCode: 'COMUNIDAD',
+  teacherId: 'u-teacher-1',
+  sharedWithFamilies: true,
+  familyCategory: 'AHORRO',
+  rubric: [],
+  subtopics: [
+    {
+      id: 'st-ahorro-1',
+      order: 1,
+      title: '1. ¿Por qué guardamos para el futuro?',
+      status: 'IN_PROGRESS',
+      offlineCached: false,
+      lab3DIntegration: { type: 'NONE', repoUrl: '', missionPrompt: '', rewardXP: 100, rewardCoins: 30 },
+      stages: {
+        discover: {
+          storyTextByAge: {
+            EXPLORADOR_7_9: 'Guardar una moneda en una alcancía es como cuidar una semillita que crecerá con paciencia.',
+            AVENTURERO_10_12: 'El ahorro nos ayuda a estar preparados ante imprevistos y a alcanzar metas familiares importantes.',
+            CREADOR_13_15: 'Diferenciar entre necesidades y deseos es la clave para armar un presupuesto familiar equilibrado.',
+          },
+          audioUrl: '',
+        },
+        practice: {
+          flashcards: [
+            { id: 'fc-ah-1-1', front: '¿Qué es el ahorro?', back: 'Guardar parte de lo que recibimos para usarlo más adelante.' },
+            { id: 'fc-ah-1-2', front: '¿Qué es una necesidad básica?', back: 'Algo indispensable para vivir, como alimento, salud o educación.' },
+          ],
+          gameMode: 'flashcards',
+        },
+        demonstrate: {
+          questions: [
+            {
+              id: 'q-ah-1-1',
+              prompt: '¿Cuál de los siguientes gastos representa una necesidad básica?',
+              options: ['Comida nutritiva para la semana', 'Un juguete que vimos en televisión', 'Golosinas todos los días', 'Ropa de moda muy cara'],
+              answerIndex: 0,
+              hint: 'Piensa en aquello sin lo cual no podríamos estar sanos.',
+              rubricCriterionId: '',
+            },
+            {
+              id: 'q-ah-1-2',
+              prompt: '¿Por qué es importante tener un fondo de ahorro en la familia?',
+              options: ['Para gastarlo todo en un día de fiesta', 'Para afrontar emergencias y gastos inesperados', 'Para competir con otras familias', 'Para no tener que volver a estudiar'],
+              answerIndex: 1,
+              hint: 'Tener ahorros brinda seguridad cuando surge un problema imprevisto.',
+              rubricCriterionId: '',
+            },
+          ],
+          acceptsHandwrittenPhoto: false,
+          reasoningBonusXP: 0,
+        },
+      },
+    },
+    {
+      id: 'st-ahorro-2',
+      order: 2,
+      title: '2. Hábitos de ahorro en el hogar',
+      status: 'LOCKED',
+      offlineCached: false,
+      lab3DIntegration: { type: 'NONE', repoUrl: '', missionPrompt: '', rewardXP: 100, rewardCoins: 30 },
+      stages: {
+        discover: {
+          storyTextByAge: {
+            EXPLORADOR_7_9: 'Apagar la luz y cerrar el caño del agua también es ahorrar en familia.',
+            AVENTURERO_10_12: 'Cuidar los recursos del hogar como la energía y los alimentos evita gastos innecesarios.',
+            CREADOR_13_15: 'El consumo responsable reduce costos fijos y fortalece la sostenibilidad económica de la familia.',
+          },
+          audioUrl: '',
+        },
+        practice: {
+          flashcards: [
+            { id: 'fc-ah-2-1', front: '¿Cómo cuidamos la energía en casa?', back: 'Apagando luces y desconectando artefactos que no usamos.' },
+            { id: 'fc-ah-2-2', front: '¿Qué hábito ayuda a no gastar de más al comprar?', back: 'Hacer una lista de compras antes de salir al mercado.' },
+          ],
+          gameMode: 'flashcards',
+        },
+        demonstrate: {
+          questions: [
+            {
+              id: 'q-ah-2-1',
+              prompt: '¿Qué acción cotidiana ayuda a ahorrar agua en casa?',
+              options: ['Cerrar el caño mientras nos cepillamos', 'Dejar la manguera abierta en el patio', 'Bañarse durante una hora entera', 'Lavar los platos con el chorro abierto al máximo'],
+              answerIndex: 0,
+              hint: 'Cerrar la llave cuando no usamos el agua evita el desperdicio.',
+              rubricCriterionId: '',
+            },
+            {
+              id: 'q-ah-2-2',
+              prompt: '¿Cuál es el beneficio de planificar las compras con una lista?',
+              options: ['Comprar solo lo necesario y evitar compras impulsivas', 'Olvidar lo que íbamos a comprar', 'Gastar el triple del dinero presupuestado', 'Comprar cosas que no necesitamos'],
+              answerIndex: 0,
+              hint: 'Una lista ayuda a mantenernos enfocados en lo necesario.',
+              rubricCriterionId: '',
+            },
+          ],
+          acceptsHandwrittenPhoto: false,
+          reasoningBonusXP: 0,
+        },
+      },
+    },
+  ],
+};
+
+export const inglesUnit: LearningUnit = {
+  id: 'unit-ruta-ingles',
+  title: 'Inglés para empezar',
+  status: 'PUBLISHED',
+  classroomCode: 'COMUNIDAD',
+  teacherId: 'u-teacher-1',
+  sharedWithFamilies: true,
+  familyCategory: 'IDIOMAS',
+  rubric: [],
+  subtopics: [
+    {
+      id: 'st-ingles-1',
+      order: 1,
+      title: '1. Saludos y cortesía (Greetings)',
+      status: 'IN_PROGRESS',
+      offlineCached: false,
+      lab3DIntegration: { type: 'NONE', repoUrl: '', missionPrompt: '', rewardXP: 100, rewardCoins: 30 },
+      stages: {
+        discover: {
+          storyTextByAge: {
+            EXPLORADOR_7_9: 'Decir "Hello" y "Thank you" nos ayuda a hacer amigos en cualquier parte del mundo.',
+            AVENTURERO_10_12: 'Aprender expresiones básicas en inglés nos abre puertas para comunicarnos con personas de otros lugares.',
+            CREADOR_13_15: 'La cortesía y los saludos cotidianos en inglés son la base para construir conversaciones con confianza.',
+          },
+          audioUrl: '',
+        },
+        practice: {
+          flashcards: [
+            { id: 'fc-in-1-1', front: '¿Cómo se dice "Buenos días"?', back: 'Good morning' },
+            { id: 'fc-in-1-2', front: '¿Cómo se dice "Gracias" y "Por favor"?', back: 'Thank you and Please' },
+          ],
+          gameMode: 'flashcards',
+        },
+        demonstrate: {
+          questions: [
+            {
+              id: 'q-in-1-1',
+              prompt: '¿Cómo saludas a alguien por la mañana en inglés?',
+              options: ['Good morning', 'Good night', 'Goodbye', 'See you'],
+              answerIndex: 0,
+              hint: '"Morning" significa mañana.',
+              rubricCriterionId: '',
+            },
+            {
+              id: 'q-in-1-2',
+              prompt: '¿Qué respondes cuando alguien te dice "Thank you"?',
+              options: ["You're welcome", 'Yes, please', 'Hello', 'Good night'],
+              answerIndex: 0,
+              hint: 'Significa "De nada" en inglés.',
+              rubricCriterionId: '',
+            },
+          ],
+          acceptsHandwrittenPhoto: false,
+          reasoningBonusXP: 0,
+        },
+      },
+    },
+    {
+      id: 'st-ingles-2',
+      order: 2,
+      title: '2. Mi familia y mi hogar (Family and Home)',
+      status: 'LOCKED',
+      offlineCached: false,
+      lab3DIntegration: { type: 'NONE', repoUrl: '', missionPrompt: '', rewardXP: 100, rewardCoins: 30 },
+      stages: {
+        discover: {
+          storyTextByAge: {
+            EXPLORADOR_7_9: 'En nuestro hogar decimos "mother", "father" y "family" con mucho amor.',
+            AVENTURERO_10_12: 'Reconocer los miembros de la familia y los espacios de la casa enriquece nuestro vocabulario en inglés.',
+            CREADOR_13_15: 'Describir a nuestra familia y nuestro entorno en inglés afianza las estructuras gramaticales básicas.',
+          },
+          audioUrl: '',
+        },
+        practice: {
+          flashcards: [
+            { id: 'fc-in-2-1', front: '¿Cómo se dice "madre" y "padre"?', back: 'Mother and Father' },
+            { id: 'fc-in-2-2', front: '¿Cómo se dice "casa" y "familia"?', back: 'House / Home and Family' },
+          ],
+          gameMode: 'flashcards',
+        },
+        demonstrate: {
+          questions: [
+            {
+              id: 'q-in-2-1',
+              prompt: '¿Qué significa la palabra "brother" en español?',
+              options: ['Hermano', 'Hermana', 'Padre', 'Tío'],
+              answerIndex: 0,
+              hint: 'Es un familiar varón de tu misma generación.',
+              rubricCriterionId: '',
+            },
+            {
+              id: 'q-in-2-2',
+              prompt: '¿Cómo se traduce "Esta es mi casa" al inglés?',
+              options: ['This is my house', 'This is my car', 'This is my book', 'This is my school'],
+              answerIndex: 0,
+              hint: '"House" significa casa.',
+              rubricCriterionId: '',
+            },
+          ],
+          acceptsHandwrittenPhoto: false,
+          reasoningBonusXP: 0,
+        },
+      },
+    },
+  ],
+};
+
+export const units: LearningUnit[] = [solarSystemUnit, fractionsUnit, ahorroUnit, inglesUnit];
 
 const divisions = ['BRONCE', 'PLATA', 'ORO', 'SUPERNOVA'] as const;
 const aliases = ['Gloria', 'Mateo', 'Sofía', 'Lucas', 'Valentina', 'Diego', 'Camila', 'Andrés', 'Isabella', 'Samuel'];

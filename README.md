@@ -71,6 +71,9 @@ Prueba rápida: `curl localhost:4000/api/health`
 | POST | `/api/family/units/draft` | con token de familia: la IA organiza el saber compartido en un borrador; respaldo si falla |
 | GET | `/api/family/units` | con token de familia: lista las lecciones creadas por el tutor familiar |
 | PUT | `/api/family/units/:id/publish` | con token de familia: la familia aprueba y publica la lección para su hijo |
+| PUT | `/api/teacher/units/:id/share` | con token de docente: comparte o deja de compartir una unidad publicada con familias |
+| GET | `/api/family/routes` | con token de familia: lista rutas publicadas por docentes compartidas con familias |
+| POST | `/api/family/routes/:id/assign` | con token de familia: asigna copia de una ruta docente al hijo (sin duplicar) |
 
 Los endpoints con token piden `Authorization: Bearer <token>`, con el `token` que devuelve `/api/auth/login`. Ejemplo de docente: `{"userId":"u-teacher-1"}`, aula `EDU-402`.
 
