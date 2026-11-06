@@ -11,6 +11,18 @@ export class GeminiError extends Error {}
 
 export const hasGemini = () => Boolean(process.env.GEMINI_API_KEY);
 
+const MAX_AI_CALLS_PER_HOUR = 60;
+const HOUR_MS = 60 * 60 * 1000;
+let aiCalls: number[] = [];
+
+export function takeAiCall() {
+  const now = Date.now();
+  aiCalls = aiCalls.filter((time) => now - time < HOUR_MS);
+  if (aiCalls.length >= MAX_AI_CALLS_PER_HOUR) return false;
+  aiCalls.push(now);
+  return true;
+}
+
 const models = () =>
   (process.env.GEMINI_MODELS ?? DEFAULT_MODELS)
     .split(',')

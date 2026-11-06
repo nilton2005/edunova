@@ -21,7 +21,7 @@ const average = (values: number[]) =>
 async function classCriteria(classId: string): Promise<RubricCriterion[]> {
   const byId = new Map<string, RubricCriterion>();
   for (const unit of await listUnits()) {
-    if (unit.classroomCode !== classId || unit.status !== 'PUBLISHED') continue;
+    if (unit.familyStudentId || unit.classroomCode !== classId || unit.status !== 'PUBLISHED') continue;
     for (const c of unit.rubric) if (!byId.has(c.id)) byId.set(c.id, c);
   }
   return [...byId.values()];
@@ -38,7 +38,10 @@ export async function overallProgress(studentId: string) {
 export async function weakestTopic(studentId: string) {
   const [mastery, units] = await Promise.all([masteryOf(studentId), listUnits()]);
   const lowest = [...mastery].sort((a, b) => a.percent - b.percent)[0];
-  return units.flatMap((u) => u.rubric).find((c) => c.id === lowest?.criterionId)?.topicName;
+  return units
+    .filter((u) => !u.familyStudentId)
+    .flatMap((u) => u.rubric)
+    .find((c) => c.id === lowest?.criterionId)?.topicName;
 }
 
 export async function classStudents(classId: string): Promise<ClassStudent[]> {

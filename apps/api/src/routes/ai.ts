@@ -5,12 +5,12 @@ import { fractionsUnit, handwrittenFallback, solarSystemUnit } from '../data/see
 import { currentUser } from '../services/access.js';
 import { asyncHandler } from '../services/async-handler.js';
 import { detectLab, reviewHypothesis, simulate } from '../services/ai.js';
-import { GeminiError, generateJson, generateText, hasGemini, type GeminiPart } from '../services/gemini.js';
+import { GeminiError, generateJson, generateText, hasGemini, takeAiCall, type GeminiPart } from '../services/gemini.js';
 import { findPictogram } from '../services/arasaac.js';
 import { DRAFT_INSTRUCTIONS, DRAFT_SCHEMA, toLearningUnit, type RawDraft } from '../services/unitDraft.js';
 
 // La ingesta del docente, "Explicar en casa" y las preguntas del rival en el duelo usan Gemini,
-// con respaldo si falla o no hay key (RNF-03).
+// con respaldo si falla o no hay key (RNF-03). Saberes de casa en /api/family usa services/gemini.ts.
 // Foto, hipótesis y validate-duel-question siguen simulados: reciben contenido escrito por niños y este
 // backend no lo envía a terceros. El rival del duelo solo recibe curso y tema, nunca datos ni preguntas del niño.
 export const ai = Router();
@@ -19,19 +19,6 @@ const INGEST_TIMEOUT_MS = 45_000;
 const EXPLAIN_TIMEOUT_MS = 12_000;
 const MAX_TEXT_LENGTH = 200_000;
 const ACCEPTED_FILES = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp', 'text/plain'];
-
-// La key tiene cuota y el token de demo no está firmado: esto limita el daño si alguien abusa de la API.
-const MAX_AI_CALLS_PER_HOUR = 60;
-const HOUR_MS = 60 * 60 * 1000;
-let aiCalls: number[] = [];
-
-function takeAiCall() {
-  const now = Date.now();
-  aiCalls = aiCalls.filter((time) => now - time < HOUR_MS);
-  if (aiCalls.length >= MAX_AI_CALLS_PER_HOUR) return false;
-  aiCalls.push(now);
-  return true;
-}
 
 async function requireTeacher(req: Request, res: Response, next: NextFunction) {
   const viewer = await currentUser(req);

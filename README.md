@@ -68,6 +68,9 @@ Prueba rápida: `curl localhost:4000/api/health`
 | PUT | `/api/teacher/assessments/:id/override` | con token: el docente reemplaza la nota de la IA |
 | PUT | `/api/teacher/alerts/:id/attended` | con token: solo docente del aula; registra la alerta como atendida |
 | GET | `/api/pictograms/:id` | proxy de pictogramas ARASAAC con caché pública (7 días) |
+| POST | `/api/family/units/draft` | con token de familia: la IA organiza el saber compartido en un borrador; respaldo si falla |
+| GET | `/api/family/units` | con token de familia: lista las lecciones creadas por el tutor familiar |
+| PUT | `/api/family/units/:id/publish` | con token de familia: la familia aprueba y publica la lección para su hijo |
 
 Los endpoints con token piden `Authorization: Bearer <token>`, con el `token` que devuelve `/api/auth/login`. Ejemplo de docente: `{"userId":"u-teacher-1"}`, aula `EDU-402`.
 
