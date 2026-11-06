@@ -6,8 +6,25 @@ import { asyncHandler } from '../services/async-handler.js';
 
 export const unitsRouter = Router();
 
-// Rúbrica oculta: el estudiante ve misiones y preguntas, nunca la tabla del docente.
-const forStudents = (unit: LearningUnit): LearningUnit => ({ ...unit, rubric: [] });
+// Rúbrica y errores comunes ocultos: el estudiante ve misiones y preguntas, nunca la tabla del docente ni los errores de cada opción.
+const forStudents = (unit: LearningUnit): LearningUnit => ({
+  ...unit,
+  rubric: [],
+  subtopics: unit.subtopics.map((s) => ({
+    ...s,
+    stages: {
+      ...s.stages,
+      demonstrate: {
+        ...s.stages.demonstrate,
+        questions: s.stages.demonstrate.questions.map((q) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { mistakes, ...rest } = q;
+          return rest;
+        }),
+      },
+    },
+  })),
+});
 
 unitsRouter.get('/', asyncHandler(async (req, res) => {
   const viewer = await currentUser(req);

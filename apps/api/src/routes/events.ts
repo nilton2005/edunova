@@ -18,6 +18,10 @@ function parseEvent(raw: Partial<LearningEvent>): LearningEvent | undefined {
   if (typeof raw?.id !== 'string' || !raw.id || raw.id.length > 80) return undefined;
   if (!ACTIVITIES.includes(raw.activity as EventActivity) || typeof raw.correct !== 'boolean') return undefined;
   const occurredAt = new Date(raw.occurredAt ?? '');
+  const selectedOption =
+    Number.isInteger(raw.selectedOption) && (raw.selectedOption as number) >= 0 && (raw.selectedOption as number) <= 5
+      ? (raw.selectedOption as number)
+      : undefined;
   return {
     id: raw.id,
     activity: raw.activity as EventActivity,
@@ -28,6 +32,7 @@ function parseEvent(raw: Partial<LearningEvent>): LearningEvent | undefined {
     hintsUsed: count(raw.hintsUsed, 0),
     timeMs: Math.min(MAX_TIME_MS, count(raw.timeMs, 0)),
     occurredAt: Number.isNaN(occurredAt.getTime()) ? new Date().toISOString() : occurredAt.toISOString(),
+    ...(selectedOption !== undefined ? { selectedOption } : {}),
   };
 }
 

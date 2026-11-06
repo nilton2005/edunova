@@ -30,7 +30,7 @@ Reglas:
 - aventurero (10 a 12 años): 3 o 4 frases claras con el vocabulario del tema.
 - creador (13 a 15 años): 3 o 4 frases con más precisión, y una pregunta abierta de hipótesis al final.
 - flashcards: 2 por subtema, con pregunta corta y respuesta corta.
-- questions: 2 por subtema, de menor a mayor dificultad, con 4 opciones y una sola correcta. Las opciones incorrectas deben reflejar errores comunes, y hint orienta sin dar la respuesta.
+- questions: 2 por subtema, de menor a mayor dificultad, con 4 opciones y una sola correcta. Las opciones incorrectas deben reflejar errores comunes, y hint orienta sin dar la respuesta. errores: para cada opción incorrecta, una frase corta y neutra que describa la confusión, sobre el tema y nunca sobre el niño. Para la opción correcta, texto vacío.
 - criterion: lo que el estudiante debe demostrar, en una frase que empiece con un verbo.
 - activity: una actividad concreta para el aula.
 - lecturaFacil: frases de 12 palabras o menos, una idea por frase, voz activa, sin metáforas.
@@ -54,7 +54,7 @@ Reglas:
 - aventurero (10 a 12 años): 3 o 4 frases claras explicando cómo y por qué se hace.
 - creador (13 a 15 años): 3 o 4 frases con más detalle y reflexión familiar.
 - flashcards: 2 por subtema basadas únicamente en lo que contó la familia.
-- questions: 2 preguntas por subtema con 4 opciones (1 correcta y 3 errores comunes) y una pista que ayude sin dar la respuesta.
+- questions: 2 preguntas por subtema con 4 opciones (1 correcta y 3 errores comunes) y una pista que ayude sin dar la respuesta. errores: para cada opción incorrecta, una frase corta y neutra que describa la confusión, sobre el tema y nunca sobre el niño. Para la opción correcta, texto vacío.
 - criterion: qué comprende o valora el hijo sobre este saber familiar.
 - activity: una actividad o práctica en el hogar con la familia.
 - lecturaFacil: frases de 12 palabras o menos, una idea por frase, voz activa, sin metáforas.
@@ -94,9 +94,18 @@ export function removeHealthRisks(unit: LearningUnit) {
     }
     if (discover.easyReadText) discover.easyReadText = withoutHealthRisks(discover.easyReadText);
     practice.flashcards = practice.flashcards.filter((card) => !isHealthRisk(`${card.front} ${card.back}`));
-    demonstrate.questions = demonstrate.questions.filter(
-      (question) => !isHealthRisk([question.prompt, question.hint, ...question.options].join(' ')),
-    );
+    demonstrate.questions = demonstrate.questions
+      .filter(
+        (question) =>
+          !isHealthRisk([question.prompt, question.hint, ...question.options, ...(question.mistakes ?? [])].join(' ')),
+      )
+      .map((question) => {
+        if (!question.mistakes) return question;
+        return {
+          ...question,
+          mistakes: question.mistakes.map((m) => (m ? withoutHealthRisks(m) : '')),
+        };
+      });
   }
   return JSON.stringify(unit.subtopics) !== before;
 }
@@ -124,13 +133,21 @@ export const DRAFT_SCHEMA = required({
           options: { type: 'ARRAY', items: text },
           answerIndex: { type: 'INTEGER' },
           hint: text,
+          errores: { type: 'ARRAY', items: text },
         }),
       },
     }),
   },
 });
 
-type RawQuestion = { prompt?: unknown; options?: unknown; answerIndex?: unknown; hint?: unknown };
+type RawQuestion = {
+  prompt?: unknown;
+  options?: unknown;
+  answerIndex?: unknown;
+  hint?: unknown;
+  errores?: unknown;
+  mistakes?: unknown;
+};
 type RawSubtopic = Record<string, unknown> & { flashcards?: unknown; questions?: unknown };
 export type RawDraft = { title?: unknown; lab?: unknown; subtopics?: unknown };
 
@@ -145,7 +162,22 @@ function toQuestion(raw: RawQuestion, id: string, rubricCriterionId: string): Un
   const answerIndex = Number(raw.answerIndex);
   const prompt = clean(raw.prompt, 300);
   if (!prompt || options.length < 2 || !Number.isInteger(answerIndex) || !options[answerIndex]) return undefined;
-  return { id, prompt, options, answerIndex, hint: clean(raw.hint, 200), rubricCriterionId };
+
+  let mistakes: string[] | undefined;
+  const rawList = Array.isArray(raw.errores) ? raw.errores : Array.isArray(raw.mistakes) ? raw.mistakes : undefined;
+  if (rawList && rawList.length === options.length) {
+    mistakes = rawList.map((m, idx) => (idx === answerIndex ? '' : clean(m, 120)));
+  }
+
+  return {
+    id,
+    prompt,
+    options,
+    answerIndex,
+    hint: clean(raw.hint, 200),
+    rubricCriterionId,
+    ...(mistakes ? { mistakes } : {}),
+  };
 }
 
 /**

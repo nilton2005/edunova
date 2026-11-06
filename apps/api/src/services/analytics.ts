@@ -6,7 +6,16 @@ import type {
   LearningEvent,
   RubricCriterion,
 } from '../../../../packages/shared-types/edunova-contract';
-import { getProfile, lastEventByStudent, listAlertActions, listUnits, listUsers, masteryOf, setMastery } from '../data/db.js';
+import {
+  eventsOfStudents,
+  getProfile,
+  lastEventByStudent,
+  listAlertActions,
+  listUnits,
+  listUsers,
+  masteryOf,
+  setMastery,
+} from '../data/db.js';
 import { alertDiagnosis } from '../data/seed.js';
 import { classroomTalents, TALENT_DISCLAIMER } from './talents.js';
 import { INITIAL_MASTERY_PERCENT, updateMasteryPercent } from './bkt.js';
@@ -77,11 +86,25 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 export async function classAlerts(classId: string): Promise<ExplainableAlert[]> {
   const students = await classStudents(classId);
   const studentIds = students.map((s) => s.studentId);
-  const [criteria, attendedMap, lastEvents] = await Promise.all([
+  const [criteria, attendedMap, lastEvents, units, studentEvents] = await Promise.all([
     classCriteria(classId),
     listAlertActions(),
     lastEventByStudent(studentIds),
+    listUnits(),
+    eventsOfStudents(studentIds),
   ]);
+
+  // Todas las preguntas publicadas del aula con sus criterios y posibles errores
+  const allQuestions = units
+    .filter((u) => !u.familyStudentId && u.classroomCode === classId && u.status === 'PUBLISHED')
+    .flatMap((u) => u.subtopics)
+    .flatMap((s) => s.stages.demonstrate.questions);
+  const questionsByCriterion = new Map<string, typeof allQuestions>();
+  for (const q of allQuestions) {
+    const list = questionsByCriterion.get(q.rubricCriterionId) ?? [];
+    list.push(q);
+    questionsByCriterion.set(q.rubricCriterionId, list);
+  }
 
   // Pasada una semana, si el problema sigue, la alerta vuelve a pedir atención.
   const attendedAtOf = (alertId: string) => {
@@ -118,6 +141,41 @@ export async function classAlerts(classId: string): Promise<ExplainableAlert[]> 
     }
     const suggestedAction = `Repasa «${c.topicName}» en grupo pequeño con ${groupDescription}. Empieza por una unidad o actividad de refuerzo.`;
 
+    // 5. Para cada alerta TOPIC:
+    // - toma los eventos con attempt 1, correct false y selectedOption de preguntas de ese criterio.
+    // - cuenta estudiantes distintos por texto de error.
+    // - si un error lo tienen 2 estudiantes o más, agrega commonMistake con el más frecuente.
+    const criterionQuestions = questionsByCriterion.get(c.id) ?? [];
+    const qMap = new Map(criterionQuestions.map((q) => [q.id, q]));
+
+    const mistakeStudents = new Map<string, Set<string>>();
+    for (const se of studentEvents) {
+      const ev = se.event;
+      if (ev.attempt !== 1 || ev.correct !== false || typeof ev.selectedOption !== 'number' || !ev.questionId) {
+        continue;
+      }
+      const q = qMap.get(ev.questionId);
+      if (!q || !q.mistakes) continue;
+      const mistakeText = q.mistakes[ev.selectedOption];
+      if (!mistakeText || !mistakeText.trim()) continue;
+
+      let studentSet = mistakeStudents.get(mistakeText);
+      if (!studentSet) {
+        studentSet = new Set<string>();
+        mistakeStudents.set(mistakeText, studentSet);
+      }
+      studentSet.add(se.studentId);
+    }
+
+    let commonMistake: { text: string; students: number } | undefined;
+    let maxCount = 0;
+    for (const [text, studentSet] of mistakeStudents.entries()) {
+      if (studentSet.size >= 2 && studentSet.size > maxCount) {
+        maxCount = studentSet.size;
+        commonMistake = { text, students: studentSet.size };
+      }
+    }
+
     return [
       {
         id: alertId,
@@ -129,6 +187,7 @@ export async function classAlerts(classId: string): Promise<ExplainableAlert[]> 
         suggestedAction,
         affectedAliases,
         attendedAt: attendedAtOf(alertId),
+        ...(commonMistake ? { commonMistake } : {}),
       },
     ];
   });
