@@ -3,6 +3,7 @@ import type { PoolClient } from 'pg';
 import type {
   AssessmentRecord,
   GamificationAndBenchmarkProfile,
+  LearningEvent,
   LearningUnit,
   User,
 } from '../../../../packages/shared-types/edunova-contract';
@@ -72,6 +73,13 @@ async function initialize() {
         percent INTEGER NOT NULL,
         PRIMARY KEY (student_id, criterion_id)
       );
+      CREATE TABLE IF NOT EXISTS learning_events (
+        id TEXT PRIMARY KEY,
+        student_id TEXT NOT NULL,
+        occurred_at TIMESTAMPTZ NOT NULL,
+        json JSONB NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS learning_events_student ON learning_events (student_id, occurred_at);
       CREATE TABLE IF NOT EXISTS assessments (
         id TEXT PRIMARY KEY,
         classroom_code TEXT,
@@ -174,14 +182,24 @@ export async function masteryOf(studentId: string) {
   return rows;
 }
 
-export async function addMastery(studentId: string, criterionId: string, delta: number) {
+export async function setMastery(studentId: string, criterionId: string, percent: number) {
   await ready();
   await pool.query(
-    `INSERT INTO mastery (student_id, criterion_id, percent) VALUES ($1, $2, LEAST(100, $3))
-     ON CONFLICT (student_id, criterion_id)
-     DO UPDATE SET percent = LEAST(100, mastery.percent + $3)`,
-    [studentId, criterionId, delta],
+    `INSERT INTO mastery (student_id, criterion_id, percent) VALUES ($1, $2, $3)
+     ON CONFLICT (student_id, criterion_id) DO UPDATE SET percent = EXCLUDED.percent`,
+    [studentId, criterionId, percent],
   );
+}
+
+/** Guarda el evento. Devuelve false si ese id ya estaba: un reenvío no cuenta dos veces. */
+export async function saveLearningEvent(studentId: string, event: LearningEvent) {
+  await ready();
+  const { rowCount } = await pool.query(
+    `INSERT INTO learning_events (id, student_id, occurred_at, json) VALUES ($1, $2, $3, $4)
+     ON CONFLICT (id) DO NOTHING`,
+    [`${studentId}:${event.id}`, studentId, event.occurredAt, JSON.stringify(event)],
+  );
+  return rowCount === 1;
 }
 
 export async function saveAssessment(assessment: AssessmentRecord) {

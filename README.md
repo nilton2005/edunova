@@ -9,7 +9,10 @@ API y contratos de datos de EduNova, plataforma de aprendizaje colaborativo, gam
 ```
 apps/api/                   API Node + Express + TypeScript
   src/routes/               Un archivo por dominio (ai, units, teacher, gamification, analytics, auth)
-  src/services/ai.ts        IA simulada (sin API key): respuestas fijas con latencia falsa
+  src/services/gemini.ts    Llamadas a Gemini: ingesta del docente y "Explicar en casa"
+  src/services/unitDraft.ts Valida lo que devuelve el modelo y arma el borrador de la unidad
+  src/services/ai.ts        Respuestas simuladas: foto, hipótesis, duelo y respaldo si la IA falla
+  src/services/bkt.ts       Dominio por criterio con Bayesian Knowledge Tracing
   src/data/seed.ts          Datos semilla (se cargan a la DB la primera vez)
   src/data/db.ts            PostgreSQL: usuarios, unidades, perfiles y dominio por criterio
 packages/shared-types/      Contrato de datos compartido con el frontend
@@ -21,6 +24,7 @@ docs/                       Alcance y prompts pedagógicos
 cd apps/api
 cp .env.example .env
 # Configura DATABASE_URL con tu PostgreSQL local antes de arrancar
+# GEMINI_API_KEY es opcional: sin ella, la ingesta y "Explicar en casa" usan el respaldo
 npm install
 npm run dev        # http://localhost:4000
 npm run typecheck
@@ -31,21 +35,22 @@ Las tablas se crean y se llenan con datos semilla al arrancar por primera vez. L
 
 Prueba rápida: `curl localhost:4000/api/health`
 
-## Endpoints (todos responden con datos semilla; la IA es simulada, sin API key)
+## Endpoints
 | Método | Ruta | Estado |
 |---|---|---|
 | POST | `/api/auth/login` | demo, usuarios de prueba |
-| GET | `/api/units`, `/api/units/:id` | semilla (Sistema Solar, Fracciones) |
-| POST | `/api/ai/ingest-document` | simulado (elige unidad por palabras clave) |
-| PUT | `/api/teacher/approve-rubric` | listo |
+| GET | `/api/units`, `/api/units/:id` | los borradores solo los ve un docente; al estudiante se le quita la rúbrica |
+| POST | `/api/ai/ingest-document` | con token de docente: Gemini lee texto, PDF o imagen y deja un borrador; 60 llamadas por hora; respaldo con aviso si falla |
+| PUT | `/api/teacher/approve-rubric` | con token: solo docente del aula |
 | POST | `/api/ai/analyze-handwritten-photo` | simulado (hoja de prueba fija) |
 | POST | `/api/ai/validate-duel-question` | simulado (heurística simple) |
-| POST | `/api/ai/family-home-explainer` | simulado |
+| POST | `/api/ai/family-home-explainer` | Gemini, solo recibe el tema; respaldo si falla |
 | GET | `/api/leagues/leaderboard?league=mastery\|effort` | solo datos públicos de cada fila (Safe-Play) |
 | GET | `/api/shop/items` | catálogo de accesorios |
 | POST | `/api/shop/buy`, `/api/shop/equip` | con token de estudiante; el saldo se valida en el servidor |
 | GET | `/api/benchmark/external/:studentId` | semilla |
-| POST | `/api/labs/complete-mission` | persiste perfil y dominio en PostgreSQL |
+| POST | `/api/labs/complete-mission` | persiste perfil; el dominio solo cambia con `firstTry: true` |
+| POST | `/api/events` | con token de estudiante: guarda hasta 200 eventos de aprendizaje, sin duplicar por id, y actualiza el dominio con BKT |
 | POST | `/api/progress/sync` | persiste progreso en PostgreSQL |
 | GET | `/api/duel/ghost-opponent?ageTier=` | semilla, por rango de edad |
 | POST | `/api/duel/result` | persiste XP y NovaCoins en PostgreSQL |
@@ -70,6 +75,8 @@ El archivo [render.yaml](render.yaml) define el servicio y una base PostgreSQL c
 4. Cuando termine el despliegue, abre `https://<tu-servicio>.onrender.com/api/health`. Debe responder `{"ok":true,...}`.
 5. En el frontend, pon esa URL en `.env.local` (`NEXT_PUBLIC_API_URL=https://<tu-servicio>.onrender.com`) y reinicia `npm run dev`.
 6. Si el frontend también se despliega, configura `WEB_ORIGIN` con su URL en Render (*Environment*).
+
+7. Para usar la IA real, agrega `GEMINI_API_KEY` en el Environment del backend. Sin ella, la app funciona con el respaldo.
 
 Cada commit a `main` redespliega solo.
 

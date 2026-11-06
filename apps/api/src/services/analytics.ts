@@ -3,14 +3,15 @@ import type {
   ClassStudent,
   CriterionMastery,
   ExplainableAlert,
+  LearningEvent,
   RubricCriterion,
 } from '../../../../packages/shared-types/edunova-contract';
-import { addMastery, getProfile, listUnits, listUsers, masteryOf } from '../data/db.js';
+import { getProfile, listUnits, listUsers, masteryOf, setMastery } from '../data/db.js';
 import { alertDiagnosis, talentSeed } from '../data/seed.js';
+import { INITIAL_MASTERY_PERCENT, updateMasteryPercent } from './bkt.js';
 
 // Por debajo de este dominio un estudiante necesita refuerzo en ese criterio.
 export const SUPPORT_THRESHOLD = 60;
-const MISSION_MASTERY_GAIN = 10;
 
 const average = (values: number[]) =>
   values.length ? Math.round(values.reduce((sum, v) => sum + v, 0) / values.length) : 0;
@@ -45,11 +46,13 @@ export async function classStudents(classId: string): Promise<ClassStudent[]> {
     const profile = await getProfile(user.id);
     if (!profile) return undefined;
     const percentById = new Map((await masteryOf(user.id)).map((m) => [m.criterionId, m.percent]));
-    const mastery: CriterionMastery[] = criteria.map((c) => ({
-      rubricCriterionId: c.id,
-      topicName: c.topicName,
-      masteryPercent: percentById.get(c.id) ?? 0,
-    }));
+    // Un criterio sin evidencia del estudiante no cuenta: una unidad recién publicada no es un 0.
+    const mastery: CriterionMastery[] = criteria.flatMap((c) => {
+      const masteryPercent = percentById.get(c.id);
+      return masteryPercent === undefined
+        ? []
+        : [{ rubricCriterionId: c.id, topicName: c.topicName, masteryPercent }];
+    });
     return {
       studentId: user.id,
       alias: user.alias,
@@ -67,13 +70,11 @@ export async function classStudents(classId: string): Promise<ClassStudent[]> {
 export async function classAlerts(classId: string): Promise<ExplainableAlert[]> {
   const [students, criteria] = await Promise.all([classStudents(classId), classCriteria(classId)]);
   return criteria.flatMap((c) => {
-    const diagnosis = alertDiagnosis[c.id];
-    if (!diagnosis || !students.length) return [];
-    const affected = students.filter((s) =>
-      s.mastery.some((m) => m.rubricCriterionId === c.id && m.masteryPercent < SUPPORT_THRESHOLD),
-    ).length;
+    const rows = students.flatMap((s) => s.mastery.filter((m) => m.rubricCriterionId === c.id));
+    const affected = rows.filter((m) => m.masteryPercent < SUPPORT_THRESHOLD).length;
     if (!affected) return [];
-    const affectedPercent = Math.round((affected / students.length) * 100);
+    const affectedPercent = Math.round((affected / rows.length) * 100);
+    const diagnosis = alertDiagnosis[c.id] ?? `necesita refuerzo en «${c.topicName}»`;
     return [
       {
         id: `al-${classId}-${c.id}`,
@@ -111,10 +112,23 @@ export async function classAnalytics(classId: string): Promise<ClassAnalytics> {
   };
 }
 
-// RF-02: cada misión superada sube el dominio de los criterios de su subtema.
-export async function recordMissionMastery(studentId: string, subtopicId: string) {
-  const criterionIds = new Set(
-    (await listUnits()).flatMap((u) => u.rubric.filter((c) => c.subtopicId === subtopicId).map((c) => c.id)),
-  );
-  for (const id of criterionIds) await addMastery(studentId, id, MISSION_MASTERY_GAIN);
+async function criteriaOfSubtopic(subtopicId: string) {
+  const units = await listUnits();
+  return new Set(units.flatMap((u) => u.rubric.filter((c) => c.subtopicId === subtopicId).map((c) => c.id)));
+}
+
+// RF-02: cada respuesta actualiza el dominio de los criterios de su subtema con BKT.
+// Solo cuenta el primer intento sin pistas: después de una pista o un error, acertar ya no mide dominio.
+export async function recordObservation(
+  studentId: string,
+  event: Pick<LearningEvent, 'activity' | 'correct' | 'subtopicId' | 'attempt' | 'hintsUsed'>,
+) {
+  if (!event.subtopicId || event.attempt > 1 || event.hintsUsed > 0) return;
+  const criterionIds = await criteriaOfSubtopic(event.subtopicId);
+  if (!criterionIds.size) return;
+  const current = new Map((await masteryOf(studentId)).map((m) => [m.criterionId, m.percent]));
+  for (const id of criterionIds) {
+    const before = current.get(id) ?? INITIAL_MASTERY_PERCENT;
+    await setMastery(studentId, id, updateMasteryPercent(before, event.correct, event.activity));
+  }
 }

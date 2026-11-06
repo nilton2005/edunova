@@ -8,9 +8,15 @@ export const teacher = Router();
 // PUT /api/teacher/approve-rubric  body: { unitId, rubric?: RubricCriterion[] }
 // La IA nunca publica sola: DRAFT -> PUBLISHED solo con esta llamada.
 teacher.put('/approve-rubric', asyncHandler(async (req, res) => {
+  const viewer = await currentUser(req);
+  if (!viewer) return res.status(401).json({ error: 'Falta iniciar sesión' });
+
   const { unitId, rubric } = req.body ?? {};
   const unit = await getUnit(unitId);
   if (!unit) return res.status(404).json({ error: 'Unidad no encontrada' });
+  if (viewer.role !== 'TEACHER' || viewer.classroomCode !== unit.classroomCode) {
+    return res.status(403).json({ error: 'Solo el docente de esta aula puede publicar' });
+  }
   if (Array.isArray(rubric)) unit.rubric = rubric;
   unit.rubric = unit.rubric.map((c) => ({ ...c, approvedByTeacher: true }));
   unit.status = 'PUBLISHED';

@@ -19,6 +19,9 @@ services:
       # Orígenes permitidos por CORS, separados por coma. Agrega aquí la URL del front si se despliega.
       - key: WEB_ORIGIN
         value: http://localhost:3000
+      # Se pone a mano en Render (Environment). Nunca en este archivo: el repo es público.
+      - key: GEMINI_API_KEY
+        sync: false
 
 databases:
   - name: edunova-db

@@ -1,6 +1,6 @@
-// Decisión del equipo: NO usamos API key de IA. Todos los endpoints "de IA" son simulados
-// con respuestas deterministas y una latencia falsa para que el demo se vea real.
-// `usedFallback` se mantiene en el contrato por compatibilidad y siempre vale true.
+// Respaldo determinista de la IA (RNF-03): respuestas fijas con una espera corta. La ingesta y
+// "Explicar en casa" lo usan si Gemini falla; foto, duelo e hipótesis lo usan siempre, porque reciben
+// contenido escrito por niños y eso no se envía a terceros.
 
 const MIN_DELAY_MS = 700;
 const MAX_DELAY_MS = 1600;

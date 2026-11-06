@@ -3,7 +3,7 @@ import type { LabMissionComplete, LeaderboardEntry } from '../../../../packages/
 import { getProfile, listProfiles, saveProfile } from '../data/db.js';
 import { aliasByStudent, benchmarkFor } from '../data/seed.js';
 import { asyncHandler } from '../services/async-handler.js';
-import { recordMissionMastery } from '../services/analytics.js';
+import { recordObservation } from '../services/analytics.js';
 
 export const gamification = Router();
 
@@ -30,13 +30,19 @@ gamification.get('/benchmark/external/:studentId', (req, res) => {
 
 // POST /api/labs/complete-mission  body: LabMissionComplete & { studentId }
 gamification.post('/labs/complete-mission', asyncHandler(async (req, res) => {
-  const { studentId, subtopicId, rewardXP = 0, rewardCoins = 0 } = (req.body ?? {}) as Partial<LabMissionComplete> & { studentId?: string };
+  const { studentId, subtopicId, rewardXP = 0, rewardCoins = 0, firstTry = true } = (req.body ?? {}) as Partial<LabMissionComplete> & {
+    studentId?: string;
+    firstTry?: boolean;
+  };
   const profile = studentId ? await getProfile(studentId) : undefined;
   if (!profile) return res.status(404).json({ error: 'Estudiante no encontrado' });
   profile.leagues.masteryPoints += rewardXP;
   profile.novaCoins += rewardCoins;
   await saveProfile(profile);
-  if (subtopicId) await recordMissionMastery(profile.studentId, subtopicId);
+  // Si erró antes de acertar, ese error ya llegó como evento: el acierto no prueba dominio.
+  if (firstTry) {
+    await recordObservation(profile.studentId, { activity: 'LAB_3D', correct: true, subtopicId, attempt: 1, hintsUsed: 0 });
+  }
   res.json(profile);
 }));
 
