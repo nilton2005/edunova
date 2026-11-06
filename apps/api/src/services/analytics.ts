@@ -7,7 +7,8 @@ import type {
   RubricCriterion,
 } from '../../../../packages/shared-types/edunova-contract';
 import { getProfile, lastEventByStudent, listAlertActions, listUnits, listUsers, masteryOf, setMastery } from '../data/db.js';
-import { alertDiagnosis, talentSeed } from '../data/seed.js';
+import { alertDiagnosis } from '../data/seed.js';
+import { classroomTalents, TALENT_DISCLAIMER } from './talents.js';
 import { INITIAL_MASTERY_PERCENT, updateMasteryPercent } from './bkt.js';
 
 // Por debajo de este dominio un estudiante necesita refuerzo en ese criterio.
@@ -172,11 +173,8 @@ export async function classAnalytics(classId: string): Promise<ClassAnalytics> {
     averageMasteryPercent: average(students.map((s) => s.overallMasteryPercent)),
     criteria,
     alerts: await classAlerts(classId),
-    talents: students.flatMap((s) => {
-      const signal = talentSeed[s.studentId];
-      return signal ? [{ studentId: s.studentId, alias: s.alias, ...signal }] : [];
-    }),
-    talentDisclaimer: 'Sugerencias exploratorias para observar en clase. No son etiquetas ni diagnósticos.',
+    talents: await classroomTalents(classId),
+    talentDisclaimer: TALENT_DISCLAIMER,
   };
 }
 

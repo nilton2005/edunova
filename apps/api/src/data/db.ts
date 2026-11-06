@@ -7,7 +7,7 @@ import type {
   LearningUnit,
   User,
 } from '../../../../packages/shared-types/edunova-contract';
-import { masterySeed, profiles as seedProfiles, units as seedUnits, users as seedUsers } from './seed.js';
+import { buildSeedLearningEvents, masterySeed, profiles as seedProfiles, units as seedUnits, users as seedUsers } from './seed.js';
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) throw new Error('Falta configurar la variable de entorno DATABASE_URL');
@@ -55,6 +55,14 @@ async function seedData(client: PoolClient) {
       `INSERT INTO mastery (student_id, criterion_id, percent)
        VALUES ($1, $2, $3) ON CONFLICT (student_id, criterion_id) DO NOTHING`,
       [mastery.studentId, mastery.criterionId, mastery.percent],
+    );
+  }
+
+  for (const { studentId, event } of buildSeedLearningEvents()) {
+    await client.query(
+      `INSERT INTO learning_events (id, student_id, occurred_at, json)
+       VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO NOTHING`,
+      [`${studentId}:${event.id}`, studentId, event.occurredAt, JSON.stringify(event)],
     );
   }
 }
@@ -260,4 +268,27 @@ export async function listAlertActions(): Promise<Map<string, string>> {
     'SELECT alert_id, attended_at::text FROM alert_actions',
   );
   return new Map(rows.map((r) => [r.alert_id, r.attended_at]));
+}
+
+export interface StoredStudentEvent {
+  studentId: string;
+  occurredAt: string;
+  event: LearningEvent;
+}
+
+export async function eventsOfStudents(studentIds: string[]): Promise<StoredStudentEvent[]> {
+  await ready();
+  if (!studentIds.length) return [];
+  const { rows } = await pool.query<{ student_id: string; occurred_at: string; json: LearningEvent }>(
+    `SELECT student_id, occurred_at::text, json
+     FROM learning_events
+     WHERE student_id = ANY($1)
+     ORDER BY occurred_at ASC`,
+    [studentIds],
+  );
+  return rows.map((r) => ({
+    studentId: r.student_id,
+    occurredAt: r.occurred_at,
+    event: r.json,
+  }));
 }

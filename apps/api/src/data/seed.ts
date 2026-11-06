@@ -2,6 +2,7 @@ import type {
   BenchmarkResult,
   GamificationAndBenchmarkProfile,
   HandwrittenAnalysis,
+  LearningEvent,
   LearningUnit,
   User,
 } from '../../../../packages/shared-types/edunova-contract';
@@ -211,3 +212,85 @@ export const handwrittenFallback: HandwrittenAnalysis = {
   reasoningBonusXP: 20,
   usedFallback: true,
 };
+
+export function buildSeedLearningEvents(): Array<{ studentId: string; event: LearningEvent }> {
+  const now = Date.now();
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const HOUR_MS = 60 * 60 * 1000;
+  const results: Array<{ studentId: string; event: LearningEvent }> = [];
+
+  // Estudiante 1 (Gloria): Activa recientemente. Alta autonomía y lógica.
+  const t1Base = now - 3 * DAY_MS;
+  for (let i = 1; i <= 20; i++) {
+    const isLab = i % 4 === 0;
+    const qId = `q-gloria-${Math.ceil(i / 2)}`;
+    const eventTime = new Date(t1Base + i * 3 * HOUR_MS).toISOString();
+    results.push({
+      studentId: 'u-student-1',
+      event: {
+        id: `seed-gloria-${i}`,
+        activity: isLab ? 'LAB_3D' : (i % 2 === 0 ? 'QUIZ' : 'FLASHCARD'),
+        correct: i % 6 !== 0,
+        subtopicId: 'sub-solar-1',
+        questionId: qId,
+        attempt: 1,
+        hintsUsed: 0,
+        timeMs: 4500 + i * 200,
+        occurredAt: eventTime,
+      },
+    });
+  }
+
+  // Estudiante 2 (Mateo): Inactivo desde hace 9 días (último evento hace 9 días y 2 horas).
+  // Perfil con alta perseverancia: varios fallos iniciales resueltos con aciertos posteriores.
+  const t2Base = now - 15 * DAY_MS;
+  for (let i = 1; i <= 20; i++) {
+    const isSecondAttempt = i % 2 === 0;
+    const qIndex = Math.ceil(i / 2);
+    const qId = `q-mateo-${qIndex}`;
+    const eventTime = new Date(t2Base + i * 6 * HOUR_MS).toISOString();
+    results.push({
+      studentId: 'u-student-2',
+      event: {
+        id: `seed-mateo-${i}`,
+        activity: i % 3 === 0 ? 'LAB_3D' : 'QUIZ',
+        correct: isSecondAttempt,
+        subtopicId: 'sub-frac-1',
+        questionId: qId,
+        attempt: isSecondAttempt ? 2 : 1,
+        hintsUsed: isSecondAttempt ? 1 : 0,
+        timeMs: 6000 + i * 150,
+        occurredAt: eventTime,
+      },
+    });
+  }
+  // Forzar que el último evento de Mateo sea exactamente hace 9 días y 2 horas
+  const mateoLast = results.find((r) => r.event.id === 'seed-mateo-20');
+  if (mateoLast) {
+    mateoLast.event.occurredAt = new Date(now - 9 * DAY_MS - 2 * HOUR_MS).toISOString();
+  }
+
+  // Estudiante 3 (Sofía): Activa ayer. Alta lógica y autonomía sobresaliente.
+  const t3Base = now - 4 * DAY_MS;
+  for (let i = 1; i <= 20; i++) {
+    const isLab = i % 2 === 0;
+    const qId = `q-sofia-${i}`;
+    const eventTime = new Date(t3Base + i * 4 * HOUR_MS).toISOString();
+    results.push({
+      studentId: 'u-student-3',
+      event: {
+        id: `seed-sofia-${i}`,
+        activity: isLab ? 'LAB_3D' : 'QUIZ',
+        correct: true,
+        subtopicId: 'sub-solar-2',
+        questionId: qId,
+        attempt: 1,
+        hintsUsed: 0,
+        timeMs: 3200 + i * 100,
+        occurredAt: eventTime,
+      },
+    });
+  }
+
+  return results;
+}
