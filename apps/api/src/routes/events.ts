@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import type { EventActivity, LearningEvent } from '../../../../packages/shared-types/edunova-contract';
-import { saveLearningEvent } from '../data/db.js';
+import type { EventActivity, EventsBatchResponse, LearningEvent } from '../../../../packages/shared-types/edunova-contract';
+import { getProfile, saveLearningEvent, saveProfile } from '../data/db.js';
 import { currentUser } from '../services/access.js';
 import { recordObservation } from '../services/analytics.js';
 import { asyncHandler } from '../services/async-handler.js';
@@ -31,7 +31,7 @@ function parseEvent(raw: Partial<LearningEvent>): LearningEvent | undefined {
   };
 }
 
-// POST /api/events  body: { events: LearningEvent[] }  -> { accepted, duplicates, rejected }
+// POST /api/events  body: { events: LearningEvent[] }  -> EventsBatchResponse
 // El estudiante sale de la sesión, no del cuerpo. El id del evento lo genera el cliente: reenviar
 // una cola sin conexión no duplica la evidencia ni el dominio.
 events.post('/', asyncHandler(async (req, res) => {
@@ -45,6 +45,8 @@ events.post('/', asyncHandler(async (req, res) => {
   }
 
   const summary = { accepted: 0, duplicates: 0, rejected: 0 };
+  const acceptedEvents: LearningEvent[] = [];
+
   // En orden: cada respuesta actualiza el dominio que dejó la anterior.
   for (const raw of list as Array<Partial<LearningEvent>>) {
     const event = parseEvent(raw);
@@ -57,7 +59,57 @@ events.post('/', asyncHandler(async (req, res) => {
       continue;
     }
     summary.accepted += 1;
+    acceptedEvents.push(event);
     await recordObservation(viewer.id, event);
   }
-  res.json(summary);
+
+  let effortBonus = 0;
+  if (acceptedEvents.length > 0) {
+    const profile = await getProfile(viewer.id);
+    const today = new Date().toISOString().slice(0, 10);
+    if (profile) {
+      if (profile.dailyBonusDate !== today) {
+        profile.dailyBonusDate = today;
+        profile.dailyBonusPoints = 0;
+      }
+    }
+
+    let streak = profile?.effortStreak ?? 0;
+    // Ordenamos los aceptados por occurredAt para respetar la cronología del estudiante
+    const sortedAccepted = [...acceptedEvents].sort(
+      (a, b) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime(),
+    );
+
+    for (const ev of sortedAccepted) {
+      if (ev.attempt === 1) {
+        if (ev.correct && (ev.hintsUsed ?? 0) === 0) {
+          streak += 1;
+          if (streak === 3) {
+            streak = 0;
+            const currentDaily = profile?.dailyBonusPoints ?? 0;
+            if (currentDaily + 5 <= 30) {
+              if (profile) {
+                profile.dailyBonusPoints = currentDaily + 5;
+                profile.leagues.effortPoints += 5;
+              }
+              effortBonus += 5;
+            }
+          }
+        } else {
+          streak = 0;
+        }
+      }
+    }
+
+    if (profile) {
+      profile.effortStreak = streak;
+      await saveProfile(profile);
+    }
+  }
+
+  const response: EventsBatchResponse = {
+    ...summary,
+    effortBonus,
+  };
+  res.json(response);
 }));

@@ -48,12 +48,12 @@ Prueba rápida: `curl localhost:4000/api/health`
 | GET | `/api/diagnostic/questions` | con token de estudiante: 9 preguntas de nivel (TaRL) sin la respuesta |
 | POST | `/api/diagnostic/submit` | con token de estudiante: evalúa nivel TaRL y guarda diagnosticTier y diagnosedAt en el perfil |
 | POST | `/api/ai/family-home-explainer` | Gemini, solo recibe el tema; respaldo si falla |
-| GET | `/api/leagues/leaderboard?league=mastery\|effort` | solo datos públicos de cada fila (Safe-Play) |
+| GET | `/api/leagues/leaderboard?league=mastery\|effort&around=me` | datos públicos de la liga o entorno de aula (Safe-Play) |
 | GET | `/api/shop/items` | catálogo de accesorios |
 | POST | `/api/shop/buy`, `/api/shop/equip` | con token de estudiante; el saldo se valida en el servidor |
 | GET | `/api/benchmark/external/:studentId` | semilla |
 | POST | `/api/labs/complete-mission` | persiste perfil; el dominio solo cambia con `firstTry: true` |
-| POST | `/api/events` | con token de estudiante: guarda hasta 200 eventos de aprendizaje, sin duplicar por id, y actualiza el dominio con BKT |
+| POST | `/api/events` | con token de estudiante: guarda hasta 200 eventos, calcula bono de esfuerzo (+5 por cada 3 aciertos en primer intento, máx 30/día) y actualiza dominio con BKT |
 | POST | `/api/progress/sync` | persiste progreso en PostgreSQL |
 | GET | `/api/duel/ghost-opponent?ageTier=` | semilla, por rango de edad |
 | POST | `/api/duel/result` | persiste XP y NovaCoins en PostgreSQL |
