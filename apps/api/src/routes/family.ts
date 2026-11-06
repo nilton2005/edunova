@@ -7,17 +7,21 @@ import type {
 } from '../../../../packages/shared-types/edunova-contract';
 import { getUnit, listProfiles, listUnits, saveUnit } from '../data/db.js';
 import { currentUser } from '../services/access.js';
+import { attachPictograms } from '../services/arasaac.js';
 import { asyncHandler } from '../services/async-handler.js';
 import { generateJson, hasGemini, takeAiCall, type GeminiPart } from '../services/gemini.js';
 import {
   DRAFT_SCHEMA,
   FAMILY_DRAFT_INSTRUCTIONS,
+  removeHealthRisks,
   toLearningUnit,
   type RawDraft,
 } from '../services/unitDraft.js';
 
 export const family = Router();
 
+// Por debajo de los 30 s en que corta el proxy de Next, contando la búsqueda de pictogramas.
+const FAMILY_DRAFT_TIMEOUT_MS = 24_000;
 const VALID_CATEGORIES: FamilyCategory[] = [
   'CAMPO_Y_LUGAR',
   'SALUD_Y_PLANTAS',
@@ -86,13 +90,16 @@ family.post('/units/draft', requireFamily, asyncHandler(async (req, res) => {
         ...(titleParam ? [{ text: `Título sugerido por la familia: ${titleParam}` }] : []),
         { text: `Saber compartido por la familia:\n${trimmedText}` },
       ];
-      const { value } = await generateJson<RawDraft>(parts, FAMILY_DRAFT_INSTRUCTIONS, DRAFT_SCHEMA, 30_000);
+      const { value } = await generateJson<RawDraft>(parts, FAMILY_DRAFT_INSTRUCTIONS, DRAFT_SCHEMA, FAMILY_DRAFT_TIMEOUT_MS);
       const generated = toLearningUnit(value, {
         id: unitId,
         fallbackTitle: titleParam,
         teacherId: viewer.id,
         classroomCode: '',
       });
+      await attachPictograms(generated);
+      // El modelo podría proponer un laboratorio: en un saber de casa nunca aplica.
+      for (const subtopic of generated.subtopics) subtopic.lab3DIntegration.type = 'NONE';
       finalUnit = {
         ...generated,
         status: 'DRAFT',
@@ -103,7 +110,8 @@ family.post('/units/draft', requireFamily, asyncHandler(async (req, res) => {
         safetyNote,
         rubric: [],
       };
-    } catch {
+    } catch (error) {
+      console.error('Saberes de casa con IA:', error instanceof Error ? error.message : error);
       usedFallback = true;
       aiNotice = 'La IA no pudo ordenar la lección en este momento. Se preparó un borrador con tu texto.';
     }
@@ -165,11 +173,16 @@ family.post('/units/draft', requireFamily, asyncHandler(async (req, res) => {
     };
   }
 
+  const removedHealthRisks = category === 'SALUD_Y_PLANTAS' && removeHealthRisks(finalUnit);
+
   await saveUnit(finalUnit);
   const response: FamilyDraftResponse = {
     unit: finalUnit,
     usedFallback,
     aiNotice,
+    safetyNotice: removedHealthRisks
+      ? 'Por seguridad quitamos las cantidades y las frases que prometen curar. Esas partes enséñalas tú, en persona.'
+      : undefined,
   };
   res.json(response);
 }));

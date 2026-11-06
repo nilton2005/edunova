@@ -50,6 +50,10 @@ async function callModel(model: string, body: object, signal: AbortSignal) {
   return text;
 }
 
+// La saturación de Gemini suele durar segundos: una segunda vuelta evita caer al respaldo por un 503 pasajero.
+const ROUNDS = 2;
+const RETRY_PAUSE_MS = 1500;
+
 /** Prueba cada modelo en orden dentro del tiempo total. Devuelve el texto y qué modelo respondió. */
 async function generate(
   parts: GeminiPart[],
@@ -57,22 +61,27 @@ async function generate(
 ) {
   const signal = AbortSignal.timeout(timeoutMs);
   let last: unknown;
-  for (const model of models()) {
-    try {
-      const text = await callModel(
-        model,
-        {
-          systemInstruction: { parts: [{ text: system }] },
-          contents: [{ role: 'user', parts }],
-          generationConfig: { temperature: 0.3, ...config, ...generationConfig(model) },
-        },
-        signal,
-      );
-      return { text, model };
-    } catch (error) {
-      last = error;
-      if (signal.aborted) break;
+  for (let round = 0; round < ROUNDS; round += 1) {
+    if (round) await new Promise((resolve) => setTimeout(resolve, RETRY_PAUSE_MS));
+    for (const model of models()) {
+      try {
+        const text = await callModel(
+          model,
+          {
+            systemInstruction: { parts: [{ text: system }] },
+            contents: [{ role: 'user', parts }],
+            generationConfig: { temperature: 0.3, ...config, ...generationConfig(model) },
+          },
+          signal,
+        );
+        return { text, model };
+      } catch (error) {
+        last = error;
+        if (signal.aborted) break;
+      }
     }
+    // Reintentar solo sirve si el servicio está saturado: un modelo inexistente seguirá fallando.
+    if (signal.aborted || !(last instanceof GeminiError && /HTTP (429|503)/.test(last.message))) break;
   }
   throw last instanceof GeminiError ? last : new GeminiError('Se agotó el tiempo de espera');
 }

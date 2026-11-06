@@ -1,5 +1,7 @@
+import type { UnitWithKeywords } from './unitDraft.js';
+
 // Servicio de búsqueda de pictogramas en ARASAAC (arasaac.org).
-// Solo se envían palabras clave derivadas del material educativo del docente.
+// Solo se envían palabras clave derivadas del material del docente o de la familia.
 // Nunca se envían datos personales ni textos escritos por estudiantes.
 
 export async function findPictogram(word: string): Promise<number | undefined> {
@@ -38,4 +40,26 @@ export async function findPictogram(word: string): Promise<number | undefined> {
   } finally {
     clearTimeout(timer);
   }
+}
+
+// Un fallo de ARASAAC nunca rompe la creación de la unidad: esa lección queda sin pictogramas.
+export async function attachPictograms(unit: UnitWithKeywords) {
+  const keywords = unit.keywordsBySubtopic;
+  delete unit.keywordsBySubtopic;
+  if (!keywords) return;
+  await Promise.all(
+    unit.subtopics.map(async (subtopic) => {
+      const words = keywords.get(subtopic.id) ?? [];
+      const pictos = await Promise.all(
+        words.map(async (word) => {
+          const id = await findPictogram(word);
+          return id ? { word, id } : undefined;
+        }),
+      );
+      const found = pictos.filter((p): p is { word: string; id: number } => p !== undefined);
+      // Dos palabras pueden llevar al mismo dibujo: se muestra una sola vez.
+      const unique = [...new Map(found.map((p) => [p.id, p])).values()];
+      if (unique.length) subtopic.stages.discover.pictograms = unique;
+    }),
+  );
 }

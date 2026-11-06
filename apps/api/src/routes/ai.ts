@@ -6,7 +6,7 @@ import { currentUser } from '../services/access.js';
 import { asyncHandler } from '../services/async-handler.js';
 import { detectLab, reviewHypothesis, simulate } from '../services/ai.js';
 import { GeminiError, generateJson, generateText, hasGemini, takeAiCall, type GeminiPart } from '../services/gemini.js';
-import { findPictogram } from '../services/arasaac.js';
+import { attachPictograms } from '../services/arasaac.js';
 import { DRAFT_INSTRUCTIONS, DRAFT_SCHEMA, toLearningUnit, type RawDraft } from '../services/unitDraft.js';
 
 // La ingesta del docente, "Explicar en casa" y las preguntas del rival en el duelo usan Gemini,
@@ -15,7 +15,8 @@ import { DRAFT_INSTRUCTIONS, DRAFT_SCHEMA, toLearningUnit, type RawDraft } from 
 // backend no lo envía a terceros. El rival del duelo solo recibe curso y tema, nunca datos ni preguntas del niño.
 export const ai = Router();
 
-const INGEST_TIMEOUT_MS = 45_000;
+// El proxy de Next corta a los 30 s con un error 500: el backend debe responder antes, pictogramas incluidos.
+const INGEST_TIMEOUT_MS = 25_000;
 const EXPLAIN_TIMEOUT_MS = 12_000;
 const MAX_TEXT_LENGTH = 200_000;
 const ACCEPTED_FILES = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp', 'text/plain'];
@@ -95,29 +96,7 @@ ai.post('/ingest-document', asyncHandler(requireTeacher), asyncHandler(async (re
       });
       aiModel = model;
 
-      // Resolver pictogramas de ARASAAC para lectura fácil con las palabras clave
-      const keywordsMap = (unit as { keywordsBySubtopic?: Map<string, string[]> }).keywordsBySubtopic;
-      if (keywordsMap) {
-        await Promise.all(
-          unit.subtopics.map(async (st) => {
-            const words = keywordsMap.get(st.id) ?? [];
-            if (!words.length) return;
-            const pictos = await Promise.all(
-              words.map(async (word) => {
-                const pictoId = await findPictogram(word).catch(() => undefined);
-                return pictoId ? { word, id: pictoId } : undefined;
-              }),
-            );
-            // Dos palabras pueden llevar al mismo dibujo: se muestra una sola vez.
-            const found = pictos.filter((p): p is { word: string; id: number } => p !== undefined);
-            const valid = [...new Map(found.map((p) => [p.id, p])).values()];
-            if (valid.length) {
-              st.stages.discover.pictograms = valid;
-            }
-          }),
-        ).catch(() => undefined);
-        delete (unit as { keywordsBySubtopic?: unknown }).keywordsBySubtopic;
-      }
+      await attachPictograms(unit);
     } catch (error) {
       console.error('Ingesta con IA:', error instanceof Error ? error.message : error);
       aiNotice = reasonFor(error);
