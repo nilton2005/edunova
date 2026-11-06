@@ -6,6 +6,7 @@ import { currentUser } from '../services/access.js';
 import { asyncHandler } from '../services/async-handler.js';
 import { detectLab, reviewHypothesis, simulate } from '../services/ai.js';
 import { GeminiError, generateJson, generateText, hasGemini, type GeminiPart } from '../services/gemini.js';
+import { findPictogram } from '../services/arasaac.js';
 import { DRAFT_INSTRUCTIONS, DRAFT_SCHEMA, toLearningUnit, type RawDraft } from '../services/unitDraft.js';
 
 // La ingesta del docente, "Explicar en casa" y las preguntas del rival en el duelo usan Gemini,
@@ -106,6 +107,28 @@ ai.post('/ingest-document', asyncHandler(requireTeacher), asyncHandler(async (re
         classroomCode: viewer.classroomCode ?? 'EDU-402',
       });
       aiModel = model;
+
+      // Resolver pictogramas de ARASAAC para lectura fácil con las palabras clave
+      const keywordsMap = (unit as { keywordsBySubtopic?: Map<string, string[]> }).keywordsBySubtopic;
+      if (keywordsMap) {
+        await Promise.all(
+          unit.subtopics.map(async (st) => {
+            const words = keywordsMap.get(st.id) ?? [];
+            if (!words.length) return;
+            const pictos = await Promise.all(
+              words.map(async (word) => {
+                const pictoId = await findPictogram(word).catch(() => undefined);
+                return pictoId ? { word, id: pictoId } : undefined;
+              }),
+            );
+            const valid = pictos.filter((p): p is { word: string; id: number } => p !== undefined);
+            if (valid.length) {
+              st.stages.discover.pictograms = valid;
+            }
+          }),
+        ).catch(() => undefined);
+        delete (unit as { keywordsBySubtopic?: unknown }).keywordsBySubtopic;
+      }
     } catch (error) {
       console.error('Ingesta con IA:', error instanceof Error ? error.message : error);
       aiNotice = reasonFor(error);

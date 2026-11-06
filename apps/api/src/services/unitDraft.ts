@@ -32,6 +32,8 @@ Reglas:
 - questions: 2 por subtema, de menor a mayor dificultad, con 4 opciones y una sola correcta. Las opciones incorrectas deben reflejar errores comunes, y hint orienta sin dar la respuesta.
 - criterion: lo que el estudiante debe demostrar, en una frase que empiece con un verbo.
 - activity: una actividad concreta para el aula.
+- lecturaFacil: frases de 12 palabras o menos, una idea por frase, voz activa, sin metáforas.
+- palabrasClave: hasta 4 sustantivos concretos en singular.
 - mission: un reto corto de exploración, si hay un laboratorio 3D adecuado.
 - lab: SOLAR_SYSTEM (astronomía), HUMAN_BODY (cuerpo humano), MOLECULAR_LAB (química), STUDYFI_PHYSICS (física), EARTH_OS (geografía y clima), o NONE si ninguno encaja.`;
 
@@ -52,6 +54,8 @@ export const DRAFT_SCHEMA = required({
       explorador: text,
       aventurero: text,
       creador: text,
+      lecturaFacil: text,
+      palabrasClave: { type: 'ARRAY', items: text },
       mission: text,
       criterion: text,
       activity: text,
@@ -72,6 +76,10 @@ export const DRAFT_SCHEMA = required({
 type RawQuestion = { prompt?: unknown; options?: unknown; answerIndex?: unknown; hint?: unknown };
 type RawSubtopic = Record<string, unknown> & { flashcards?: unknown; questions?: unknown };
 export type RawDraft = { title?: unknown; lab?: unknown; subtopics?: unknown };
+
+export type UnitWithKeywords = LearningUnit & {
+  keywordsBySubtopic?: Map<string, string[]>;
+};
 
 const clean = (value: unknown, max: number) => (typeof value === 'string' ? value.trim().slice(0, max) : '');
 
@@ -98,11 +106,22 @@ export function toLearningUnit(
   if (!items.length) throw new Error('La respuesta no trae subtemas utilizables');
 
   const rubric: RubricCriterion[] = [];
+  const keywordsBySubtopic = new Map<string, string[]>();
   const subtopics: SubtopicNode[] = items.map((s, i) => {
     const subtopicId = `st-${base.id}-${i + 1}`;
     const criterionId = `rc-${base.id}-${i + 1}`;
     const title = clean(s.title, 120);
     const aventurero = clean(s.aventurero, 1500);
+    const easyReadText = clean(s.lecturaFacil, 800);
+    const rawPalabras = Array.isArray(s.palabrasClave) ? s.palabrasClave : [];
+    const palabrasClave = rawPalabras
+      .map((p) => clean(p, 30))
+      .filter(Boolean)
+      .slice(0, 4);
+
+    if (palabrasClave.length) {
+      keywordsBySubtopic.set(subtopicId, palabrasClave);
+    }
 
     rubric.push({
       id: criterionId,
@@ -147,6 +166,7 @@ export function toLearningUnit(
             CREADOR_13_15: clean(s.creador, 1500) || aventurero,
           },
           audioUrl: '',
+          easyReadText: easyReadText || undefined,
         },
         practice: { flashcards, gameMode: 'flashcards' },
         demonstrate: { questions, acceptsHandwrittenPhoto: false, reasoningBonusXP: 20 },
@@ -154,7 +174,7 @@ export function toLearningUnit(
     };
   });
 
-  return {
+  const unit: UnitWithKeywords = {
     id: base.id,
     title: clean(raw.title, 120) || base.fallbackTitle || 'Unidad sin título',
     status: 'DRAFT',
@@ -163,4 +183,6 @@ export function toLearningUnit(
     subtopics,
     rubric,
   };
+  unit.keywordsBySubtopic = keywordsBySubtopic;
+  return unit;
 }

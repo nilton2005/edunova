@@ -67,6 +67,7 @@ Prueba rápida: `curl localhost:4000/api/health`
 | GET | `/api/classes/:code/assessments` | con token: solo docente del aula |
 | PUT | `/api/teacher/assessments/:id/override` | con token: el docente reemplaza la nota de la IA |
 | PUT | `/api/teacher/alerts/:id/attended` | con token: solo docente del aula; registra la alerta como atendida |
+| GET | `/api/pictograms/:id` | proxy de pictogramas ARASAAC con caché pública (7 días) |
 
 Los endpoints con token piden `Authorization: Bearer <token>`, con el `token` que devuelve `/api/auth/login`. Ejemplo de docente: `{"userId":"u-teacher-1"}`, aula `EDU-402`.
 

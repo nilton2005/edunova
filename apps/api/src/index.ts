@@ -10,6 +10,7 @@ import { duel } from './routes/duel.js';
 import { events } from './routes/events.js';
 import { gamification } from './routes/gamification.js';
 import { passport } from './routes/passport.js';
+import { pictograms } from './routes/pictograms.js';
 import { shop } from './routes/shop.js';
 import { students } from './routes/students.js';
 import { teacher } from './routes/teacher.js';
@@ -38,6 +39,7 @@ app.use('/api/classes', classes);
 app.use('/api/diagnostic', diagnostic);
 app.use('/api/duel', duel);
 app.use('/api/passport', passport);
+app.use('/api/pictograms', pictograms);
 app.use('/api/shop', shop);
 app.use('/api', gamification);
 
