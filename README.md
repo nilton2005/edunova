@@ -9,7 +9,7 @@ API y contratos de datos de EduNova, plataforma de aprendizaje colaborativo, gam
 ```
 apps/api/                   API Node + Express + TypeScript
   src/routes/               Un archivo por dominio (ai, units, teacher, gamification, analytics, auth)
-  src/services/gemini.ts    Llamadas a Gemini: ingesta del docente y "Explicar en casa"
+  src/services/gemini.ts    Llamadas a Gemini: ingesta del docente, "Explicar en casa" y preguntas del rival
   src/services/unitDraft.ts Valida lo que devuelve el modelo y arma el borrador de la unidad
   src/services/ai.ts        Respuestas simuladas: foto, hipótesis, duelo y respaldo si la IA falla
   src/services/bkt.ts       Dominio por criterio con Bayesian Knowledge Tracing
@@ -44,6 +44,7 @@ Prueba rápida: `curl localhost:4000/api/health`
 | PUT | `/api/teacher/approve-rubric` | con token: solo docente del aula |
 | POST | `/api/ai/analyze-handwritten-photo` | simulado (hoja de prueba fija) |
 | POST | `/api/ai/validate-duel-question` | simulado (heurística simple) |
+| POST | `/api/ai/duel-opponent-questions` | con token de estudiante: Gemini genera preguntas del rival según curso y tema; respaldo si falla o no hay key |
 | POST | `/api/ai/family-home-explainer` | Gemini, solo recibe el tema; respaldo si falla |
 | GET | `/api/leagues/leaderboard?league=mastery\|effort` | solo datos públicos de cada fila (Safe-Play) |
 | GET | `/api/shop/items` | catálogo de accesorios |
