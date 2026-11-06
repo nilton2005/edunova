@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
 import type { AssessmentRecord, HandwrittenAnalysis } from '../../../../packages/shared-types/edunova-contract';
-import { getProfile, listUsers, saveAssessment, saveProfile } from '../data/db.js';
+import { getProfile, listUsers, saveAssessment, updateProfile } from '../data/db.js';
 import { currentUser } from '../services/access.js';
 import { asyncHandler } from '../services/async-handler.js';
 
@@ -49,7 +49,8 @@ assess.post('/submit-reasoning', asyncHandler(async (req, res) => {
   };
   await saveAssessment(record);
 
-  profile.leagues.effortPoints += bonus;
-  await saveProfile(profile);
+  await updateProfile(profile.studentId, (p) => {
+    p.leagues.effortPoints += bonus;
+  });
   res.json(record);
 }));

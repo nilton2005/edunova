@@ -186,6 +186,34 @@ export async function saveProfile(profile: GamificationAndBenchmarkProfile) {
   ]);
 }
 
+// Bloquea el perfil mientras cambia: dos peticiones a la vez no se pisan las recompensas.
+export async function updateProfile(
+  studentId: string,
+  change: (profile: GamificationAndBenchmarkProfile) => void,
+) {
+  await ready();
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { rows } = await client.query<{ json: GamificationAndBenchmarkProfile }>(
+      'SELECT json FROM profiles WHERE student_id = $1 FOR UPDATE',
+      [studentId],
+    );
+    const profile = rows[0]?.json;
+    if (profile) {
+      change(profile);
+      await client.query('UPDATE profiles SET json = $1 WHERE student_id = $2', [JSON.stringify(profile), studentId]);
+    }
+    await client.query('COMMIT');
+    return profile;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export async function masteryOf(studentId: string) {
   await ready();
   const { rows } = await pool.query<{ criterionId: string; percent: number }>(
@@ -242,14 +270,14 @@ export async function listAssessments(classroomCode: string) {
 export async function lastEventByStudent(studentIds: string[]): Promise<Map<string, string>> {
   await ready();
   if (!studentIds.length) return new Map();
-  const { rows } = await pool.query<{ student_id: string; last_event: string }>(
-    `SELECT student_id, MAX(occurred_at)::text AS last_event
+  const { rows } = await pool.query<{ student_id: string; last_event: Date }>(
+    `SELECT student_id, MAX(occurred_at) AS last_event
      FROM learning_events
      WHERE student_id = ANY($1)
      GROUP BY student_id`,
     [studentIds],
   );
-  return new Map(rows.map((r) => [r.student_id, r.last_event]));
+  return new Map(rows.map((r) => [r.student_id, r.last_event.toISOString()]));
 }
 
 export async function saveAlertAction(alertId: string, teacherId: string, attendedAt: string = new Date().toISOString()) {
@@ -264,10 +292,10 @@ export async function saveAlertAction(alertId: string, teacherId: string, attend
 
 export async function listAlertActions(): Promise<Map<string, string>> {
   await ready();
-  const { rows } = await pool.query<{ alert_id: string; attended_at: string }>(
-    'SELECT alert_id, attended_at::text FROM alert_actions',
+  const { rows } = await pool.query<{ alert_id: string; attended_at: Date }>(
+    'SELECT alert_id, attended_at FROM alert_actions',
   );
-  return new Map(rows.map((r) => [r.alert_id, r.attended_at]));
+  return new Map(rows.map((r) => [r.alert_id, r.attended_at.toISOString()]));
 }
 
 export interface StoredStudentEvent {

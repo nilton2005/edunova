@@ -4,7 +4,7 @@ import type {
   LeaderboardAroundMeResponse,
   LeaderboardEntry,
 } from '../../../../packages/shared-types/edunova-contract';
-import { getProfile, listProfiles, listUsers, saveProfile } from '../data/db.js';
+import { listProfiles, listUsers, updateProfile } from '../data/db.js';
 import { aliasByStudent, benchmarkFor } from '../data/seed.js';
 import { currentUser } from '../services/access.js';
 import { asyncHandler } from '../services/async-handler.js';
@@ -83,11 +83,13 @@ gamification.post('/labs/complete-mission', asyncHandler(async (req, res) => {
     studentId?: string;
     firstTry?: boolean;
   };
-  const profile = studentId ? await getProfile(studentId) : undefined;
+  const profile = studentId
+    ? await updateProfile(studentId, (p) => {
+        p.leagues.masteryPoints += rewardXP;
+        p.novaCoins += rewardCoins;
+      })
+    : undefined;
   if (!profile) return res.status(404).json({ error: 'Estudiante no encontrado' });
-  profile.leagues.masteryPoints += rewardXP;
-  profile.novaCoins += rewardCoins;
-  await saveProfile(profile);
   // Si erró antes de acertar, ese error ya llegó como evento: el acierto no prueba dominio.
   if (firstTry) {
     await recordObservation(profile.studentId, { activity: 'LAB_3D', correct: true, subtopicId, attempt: 1, hintsUsed: 0 });
@@ -98,12 +100,14 @@ gamification.post('/labs/complete-mission', asyncHandler(async (req, res) => {
 // POST /api/progress/sync  body: { studentId, events: [{ xp?, coins? }] }
 gamification.post('/progress/sync', asyncHandler(async (req, res) => {
   const { studentId, events = [] } = req.body ?? {};
-  const profile = studentId ? await getProfile(studentId) : undefined;
+  const profile = studentId
+    ? await updateProfile(studentId, (p) => {
+        for (const e of events) {
+          p.leagues.effortPoints += e.xp ?? 0;
+          p.novaCoins += e.coins ?? 0;
+        }
+      })
+    : undefined;
   if (!profile) return res.status(404).json({ error: 'Estudiante no encontrado' });
-  for (const e of events) {
-    profile.leagues.effortPoints += e.xp ?? 0;
-    profile.novaCoins += e.coins ?? 0;
-  }
-  await saveProfile(profile);
   res.json({ synced: events.length });
 }));

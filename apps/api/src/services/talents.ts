@@ -13,14 +13,15 @@ export function calculateStudentTalents(
   // RF-04: Solo se devuelve señal si evidenceCount es 5 o más
   if (evidenceCount < 5) return undefined;
 
-  // 1. logic: % de eventos LAB_3D con attempt 1 y correct true. Sin eventos LAB_3D, 0.
+  // Sin evidencia el valor queda vacío: un 0 se leería como un punto débil del estudiante.
+  // 1. logic: % de eventos LAB_3D con attempt 1 y correct true.
   const labEvents = events.filter((e) => e.activity === 'LAB_3D');
   const labAttempt1Correct = labEvents.filter(
     (e) => (e.attempt ?? 1) === 1 && e.correct === true,
   ).length;
   const logic = labEvents.length
     ? Math.round((labAttempt1Correct / labEvents.length) * 100)
-    : 0;
+    : undefined;
 
   // 2. autonomy: % de eventos de primer intento con correct true y hintsUsed 0.
   const firstAttempts = events.filter((e) => (e.attempt ?? 1) === 1);
@@ -66,7 +67,7 @@ export function calculateStudentTalents(
 
   const perseverance = failedFirstCount
     ? Math.round((resolvedAfterFailureCount / failedFirstCount) * 100)
-    : 0;
+    : undefined;
 
   return {
     studentId,

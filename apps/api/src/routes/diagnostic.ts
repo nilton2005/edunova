@@ -1,7 +1,7 @@
 import { Router, type NextFunction, type Request, type Response } from 'express';
 import type { AgeTier, DiagnosticResult } from '../../../../packages/shared-types/edunova-contract';
 import { DIAGNOSTIC_QUESTIONS, getPublicDiagnosticQuestions } from '../data/diagnostic.js';
-import { getProfile, saveProfile } from '../data/db.js';
+import { updateProfile } from '../data/db.js';
 import { currentUser } from '../services/access.js';
 import { asyncHandler } from '../services/async-handler.js';
 
@@ -21,7 +21,7 @@ async function requireStudent(req: Request, res: Response, next: NextFunction) {
 // Devuelve las 9 preguntas sin la respuesta correcta
 diagnostic.get(
   '/questions',
-  requireStudent,
+  asyncHandler(requireStudent),
   asyncHandler(async (_req, res) => {
     res.json(getPublicDiagnosticQuestions());
   })
@@ -36,7 +36,7 @@ interface AnswerInput {
 // Recibe las 9 respuestas, evalúa el nivel (TaRL) y guarda el resultado en el perfil
 diagnostic.post(
   '/submit',
-  requireStudent,
+  asyncHandler(requireStudent),
   asyncHandler(async (req, res) => {
     const viewer = res.locals.viewer as { id: string };
     const { answers } = req.body as { answers?: unknown };
@@ -92,21 +92,20 @@ diagnostic.post(
     const totalCorrect = correctExplorador + correctAventurero + correctCreador;
 
     let determinedTier: AgeTier = 'EXPLORADOR_7_9';
-    if (correctExplorador >= 2) {
+    if (correctAventurero >= 2) {
       determinedTier = 'AVENTURERO_10_12';
-      if (correctAventurero >= 2) {
+      if (correctCreador >= 2) {
         determinedTier = 'CREADOR_13_15';
       }
     }
 
-    const profile = await getProfile(viewer.id);
+    const profile = await updateProfile(viewer.id, (p) => {
+      p.diagnosticTier = determinedTier;
+      p.diagnosedAt = new Date().toISOString();
+    });
     if (!profile) {
       return res.status(404).json({ error: 'Perfil de estudiante no encontrado' });
     }
-
-    profile.diagnosticTier = determinedTier;
-    profile.diagnosedAt = new Date().toISOString();
-    await saveProfile(profile);
 
     const result: DiagnosticResult = {
       diagnosticTier: determinedTier,

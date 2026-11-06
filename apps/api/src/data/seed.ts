@@ -180,16 +180,6 @@ export const alertDiagnosis: Record<string, string> = {
   'rc-solar-2': 'confunde planetas rocosos con gigantes gaseosos',
 };
 
-// Radar de Talentos (simulado, ver docs/ALCANCE.md).
-export const talentSeed: Record<string, { creativity: number; collaboration: number; logic: number }> = {
-  'u-student-1': { creativity: 82, collaboration: 74, logic: 88 },
-  'u-student-2': { creativity: 90, collaboration: 68, logic: 55 },
-  'u-student-3': { creativity: 76, collaboration: 60, logic: 94 },
-  'u-student-seed-5': { creativity: 64, collaboration: 92, logic: 70 },
-  'u-student-seed-6': { creativity: 58, collaboration: 86, logic: 62 },
-  'u-student-seed-9': { creativity: 72, collaboration: 70, logic: 78 },
-};
-
 export function benchmarkFor(studentId: string): BenchmarkResult {
   const idx = Math.max(0, profiles.findIndex((p) => p.studentId === studentId));
   return {

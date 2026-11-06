@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import type { EventActivity, EventsBatchResponse, LearningEvent } from '../../../../packages/shared-types/edunova-contract';
-import { getProfile, saveLearningEvent, saveProfile } from '../data/db.js';
+import { saveLearningEvent, updateProfile } from '../data/db.js';
 import { currentUser } from '../services/access.js';
 import { recordObservation } from '../services/analytics.js';
 import { asyncHandler } from '../services/async-handler.js';
@@ -30,6 +30,10 @@ function parseEvent(raw: Partial<LearningEvent>): LearningEvent | undefined {
     occurredAt: Number.isNaN(occurredAt.getTime()) ? new Date().toISOString() : occurredAt.toISOString(),
   };
 }
+
+const STREAK_LENGTH = 3;
+const STREAK_BONUS = 5;
+const MAX_DAILY_BONUS = 30;
 
 // POST /api/events  body: { events: LearningEvent[] }  -> EventsBatchResponse
 // El estudiante sale de la sesión, no del cuerpo. El id del evento lo genera el cliente: reenviar
@@ -65,46 +69,35 @@ events.post('/', asyncHandler(async (req, res) => {
 
   let effortBonus = 0;
   if (acceptedEvents.length > 0) {
-    const profile = await getProfile(viewer.id);
     const today = new Date().toISOString().slice(0, 10);
-    if (profile) {
-      if (profile.dailyBonusDate !== today) {
-        profile.dailyBonusDate = today;
-        profile.dailyBonusPoints = 0;
-      }
-    }
-
-    let streak = profile?.effortStreak ?? 0;
-    // Ordenamos los aceptados por occurredAt para respetar la cronología del estudiante
+    // Una cola sin conexión llega junta: se cuenta en el orden en que el estudiante respondió.
     const sortedAccepted = [...acceptedEvents].sort(
       (a, b) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime(),
     );
 
-    for (const ev of sortedAccepted) {
-      if (ev.attempt === 1) {
-        if (ev.correct && (ev.hintsUsed ?? 0) === 0) {
-          streak += 1;
-          if (streak === 3) {
-            streak = 0;
-            const currentDaily = profile?.dailyBonusPoints ?? 0;
-            if (currentDaily + 5 <= 30) {
-              if (profile) {
-                profile.dailyBonusPoints = currentDaily + 5;
-                profile.leagues.effortPoints += 5;
-              }
-              effortBonus += 5;
-            }
-          }
-        } else {
-          streak = 0;
-        }
+    await updateProfile(viewer.id, (profile) => {
+      if (profile.dailyBonusDate !== today) {
+        profile.dailyBonusDate = today;
+        profile.dailyBonusPoints = 0;
       }
-    }
-
-    if (profile) {
+      let streak = profile.effortStreak ?? 0;
+      for (const ev of sortedAccepted) {
+        if (ev.attempt !== 1) continue;
+        if (!ev.correct || ev.hintsUsed > 0) {
+          streak = 0;
+          continue;
+        }
+        streak += 1;
+        if (streak < STREAK_LENGTH) continue;
+        streak = 0;
+        const earnedToday = profile.dailyBonusPoints ?? 0;
+        if (earnedToday + STREAK_BONUS > MAX_DAILY_BONUS) continue;
+        profile.dailyBonusPoints = earnedToday + STREAK_BONUS;
+        profile.leagues.effortPoints += STREAK_BONUS;
+        effortBonus += STREAK_BONUS;
+      }
       profile.effortStreak = streak;
-      await saveProfile(profile);
-    }
+    });
   }
 
   const response: EventsBatchResponse = {

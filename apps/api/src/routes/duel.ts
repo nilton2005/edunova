@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getProfile, saveProfile } from '../data/db.js';
+import { updateProfile } from '../data/db.js';
 import { asyncHandler } from '../services/async-handler.js';
 
 export const duel = Router();
@@ -25,12 +25,14 @@ duel.get('/ghost-opponent', (req, res) => {
 // Premia a la Liga de Maestría (calidad de preguntas) y suma NovaCoins.
 duel.post('/result', asyncHandler(async (req, res) => {
   const { studentId, won = false, questionsCreated = 0 } = req.body ?? {};
-  const profile = studentId ? await getProfile(studentId) : undefined;
-  if (!profile) return res.status(404).json({ error: 'Estudiante no encontrado' });
   const xp = (won ? 100 : 40) + Number(questionsCreated) * 10;
   const coins = won ? 30 : 10;
-  profile.leagues.masteryPoints += xp;
-  profile.novaCoins += coins;
-  await saveProfile(profile);
+  const profile = studentId
+    ? await updateProfile(studentId, (p) => {
+        p.leagues.masteryPoints += xp;
+        p.novaCoins += coins;
+      })
+    : undefined;
+  if (!profile) return res.status(404).json({ error: 'Estudiante no encontrado' });
   res.json({ xp, coins, profile });
 }));

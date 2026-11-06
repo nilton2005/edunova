@@ -80,6 +80,12 @@ export async function classAlerts(classId: string): Promise<ExplainableAlert[]> 
     lastEventByStudent(studentIds),
   ]);
 
+  // Pasada una semana, si el problema sigue, la alerta vuelve a pedir atención.
+  const attendedAtOf = (alertId: string) => {
+    const attendedAt = attendedMap.get(alertId);
+    return attendedAt && Date.now() - new Date(attendedAt).getTime() < SEVEN_DAYS_MS ? attendedAt : undefined;
+  };
+
   const topicAlerts: ExplainableAlert[] = criteria.flatMap((c) => {
     const rows = students.flatMap((s) => s.mastery.filter((m) => m.rubricCriterionId === c.id));
     const affectedUnderThreshold = students
@@ -119,7 +125,7 @@ export async function classAlerts(classId: string): Promise<ExplainableAlert[]> 
         rubricCriterionId: c.id,
         suggestedAction,
         affectedAliases,
-        attendedAt: attendedMap.get(alertId),
+        attendedAt: attendedAtOf(alertId),
       },
     ];
   });
@@ -149,7 +155,7 @@ export async function classAlerts(classId: string): Promise<ExplainableAlert[]> 
       rubricCriterionId: undefined,
       suggestedAction: 'Conversa con cada estudiante o con su familia para saber si necesita ayuda.',
       affectedAliases: inactiveStudents.map((s) => s.alias),
-      attendedAt: attendedMap.get(inactivityAlertId),
+      attendedAt: attendedAtOf(inactivityAlertId),
     };
   }
 

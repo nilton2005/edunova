@@ -29,7 +29,7 @@ El estado por tarea está en el [tablero](https://github.com/users/nilton2005/pr
 | Duelo 1v1 y modo Fantasma | Simulada |
 | Flashcards con repetición | Real |
 | Indicador offline + caché de una lección | Real (mínimo) |
-| Alertas explicables y Radar de Talentos | Simulada |
+| Alertas explicables y Radar de Talentos | Calculadas con dominio y eventos reales |
 
 ## P3 — Solo pitch
 | Función | Estado |
