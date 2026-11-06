@@ -9,7 +9,7 @@ export const events = Router();
 
 const MAX_EVENTS = 200;
 const MAX_TIME_MS = 60 * 60 * 1000;
-const ACTIVITIES: EventActivity[] = ['FLASHCARD', 'QUIZ', 'LAB_3D'];
+const ACTIVITIES: EventActivity[] = ['FLASHCARD', 'QUIZ', 'LAB_3D', 'GAME'];
 
 const count = (value: unknown, fallback: number) =>
   Number.isInteger(value) && (value as number) >= 0 ? (value as number) : fallback;

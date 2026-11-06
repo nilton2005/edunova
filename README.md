@@ -53,7 +53,7 @@ Prueba rápida: `curl localhost:4000/api/health`
 | POST | `/api/shop/buy`, `/api/shop/equip` | con token de estudiante; el saldo se valida en el servidor |
 | GET | `/api/benchmark/external/:studentId` | semilla |
 | POST | `/api/labs/complete-mission` | persiste perfil; el dominio solo cambia con `firstTry: true` |
-| POST | `/api/events` | con token de estudiante: guarda hasta 200 eventos, calcula bono de esfuerzo (+5 por cada 3 aciertos en primer intento, máx 30/día) y actualiza dominio con BKT |
+| POST | `/api/events` | con token de estudiante: guarda hasta 200 eventos (`QUIZ`, `FLASHCARD`, `PRACTICE`, `DEMONSTRATE`, `LAB_3D`, `GAME`), calcula bono de esfuerzo (+5 por cada 3 aciertos en primer intento, máx 30/día) y actualiza dominio con BKT (siempre que incluya `subtopicId` válido) |
 | POST | `/api/progress/sync` | persiste progreso en PostgreSQL |
 | GET | `/api/duel/ghost-opponent?ageTier=` | semilla, por rango de edad |
 | POST | `/api/duel/result` | persiste XP y NovaCoins en PostgreSQL |
@@ -95,6 +95,11 @@ Cada commit a `main` redespliega solo.
 - El servicio web Free **se duerme tras 15 minutos sin uso**; la base de datos PostgreSQL es un servicio separado y conserva los datos aunque la API se duerma.
 - La base PostgreSQL Free de Render **vence 30 días después de crearla**, aunque tenga actividad. Para conservar datos por más tiempo, actualízala a un plan de pago antes de que venza y sigue las instrucciones de Render.
 - La API es pública: cualquiera con la URL puede llamarla. Los datos son de prueba y el token de demo no está firmado.
+
+## Trazabilidad y Valle de los Saberes
+- **Actividad `GAME`:** Añadida a `EventActivity` en los contratos y en `/api/events`. Representa intentos de respuesta dentro de juegos de mesa y dinámicas lúdicas (como la Plaza del Dado). En BKT utiliza los parámetros por defecto de dominio, los mismos que `QUIZ`. Si el evento contiene un `subtopicId` válido de una unidad docente, actualiza la probabilidad de dominio del criterio asociado. Si no tiene `subtopicId`, se guarda en el historial de analítica sin alterar el modelo BKT.
+- **Valle de los Saberes:** Mapa diorama 3D exterior interactivo (`/estudiante/valle`). Reacciona a unidades publicadas por docentes y familias con balizas flotantes 3D e integra personajes guía (Elena, Mateo, Vega) que lanzan preguntas reales del aula con trazabilidad de eventos.
+- **Aventuras 3D (`LAB_3D`):** Doctor Detective, Ordena Planetas y Piloto Espacial reportan eventos de proceso con questionId estable por cada reto o planeta.
 
 ## Cómo trabajar
 - Lee [CLAUDE.md](CLAUDE.md) y [docs/ALCANCE.md](docs/ALCANCE.md).
