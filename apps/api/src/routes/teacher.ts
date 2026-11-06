@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAssessment, getUnit, saveAssessment, saveUnit } from '../data/db.js';
+import { getAssessment, getUnit, saveAlertAction, saveAssessment, saveUnit } from '../data/db.js';
 import { currentUser } from '../services/access.js';
 import { asyncHandler } from '../services/async-handler.js';
 
@@ -46,3 +46,26 @@ teacher.put('/assessments/:id/override', asyncHandler(async (req, res) => {
   await saveAssessment(assessment);
   res.json(assessment);
 }));
+
+// PUT /api/teacher/alerts/:id/attended
+// Marca una alerta como atendida por el docente del aula
+teacher.put(
+  '/alerts/:id/attended',
+  asyncHandler(async (req, res) => {
+    const viewer = await currentUser(req);
+    if (!viewer) return res.status(401).json({ error: 'Falta iniciar sesión' });
+    if (viewer.role !== 'TEACHER') {
+      return res.status(403).json({ error: 'Solo un docente puede atender alertas' });
+    }
+
+    const alertId = req.params.id;
+    // La alerta tiene formato al-${classId}-...
+    if (!viewer.classroomCode || !alertId.startsWith(`al-${viewer.classroomCode}-`)) {
+      return res.status(403).json({ error: 'Esta alerta no pertenece a tu aula' });
+    }
+
+    const attendedAt = new Date().toISOString();
+    await saveAlertAction(alertId, viewer.id, attendedAt);
+    res.json({ ok: true, alertId, attendedAt });
+  })
+);

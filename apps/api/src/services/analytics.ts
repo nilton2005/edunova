@@ -6,7 +6,7 @@ import type {
   LearningEvent,
   RubricCriterion,
 } from '../../../../packages/shared-types/edunova-contract';
-import { getProfile, listUnits, listUsers, masteryOf, setMastery } from '../data/db.js';
+import { getProfile, lastEventByStudent, listAlertActions, listUnits, listUsers, masteryOf, setMastery } from '../data/db.js';
 import { alertDiagnosis, talentSeed } from '../data/seed.js';
 import { INITIAL_MASTERY_PERCENT, updateMasteryPercent } from './bkt.js';
 
@@ -68,24 +68,91 @@ export async function classStudents(classId: string): Promise<ClassStudent[]> {
   return students.filter((student): student is ClassStudent => student !== undefined);
 }
 
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
 export async function classAlerts(classId: string): Promise<ExplainableAlert[]> {
-  const [students, criteria] = await Promise.all([classStudents(classId), classCriteria(classId)]);
-  return criteria.flatMap((c) => {
+  const students = await classStudents(classId);
+  const studentIds = students.map((s) => s.studentId);
+  const [criteria, attendedMap, lastEvents] = await Promise.all([
+    classCriteria(classId),
+    listAlertActions(),
+    lastEventByStudent(studentIds),
+  ]);
+
+  const topicAlerts: ExplainableAlert[] = criteria.flatMap((c) => {
     const rows = students.flatMap((s) => s.mastery.filter((m) => m.rubricCriterionId === c.id));
-    const affected = rows.filter((m) => m.masteryPercent < SUPPORT_THRESHOLD).length;
-    if (!affected) return [];
-    const affectedPercent = Math.round((affected / rows.length) * 100);
+    const affectedUnderThreshold = students
+      .map((s) => {
+        const m = s.mastery.find((item) => item.rubricCriterionId === c.id);
+        return m && m.masteryPercent < SUPPORT_THRESHOLD
+          ? { student: s, percent: m.masteryPercent }
+          : null;
+      })
+      .filter((item): item is { student: ClassStudent; percent: number } => item !== null)
+      .sort((a, b) => a.percent - b.percent);
+
+    if (!affectedUnderThreshold.length || !rows.length) return [];
+    const affectedPercent = Math.round((affectedUnderThreshold.length / rows.length) * 100);
     const diagnosis = alertDiagnosis[c.id] ?? `necesita refuerzo en «${c.topicName}»`;
+    const alertId = `al-${classId}-${c.id}`;
+
+    let groupDescription: string;
+    let affectedAliases: string[];
+    if (affectedUnderThreshold.length > 5) {
+      const lowest5 = affectedUnderThreshold.slice(0, 5);
+      affectedAliases = lowest5.map((a) => a.student.alias);
+      groupDescription = 'los 5 que más lo necesitan';
+    } else {
+      affectedAliases = affectedUnderThreshold.map((a) => a.student.alias);
+      groupDescription = affectedAliases.join(', ');
+    }
+    const suggestedAction = `Repasa «${c.topicName}» en grupo pequeño con ${groupDescription}. Empieza por una unidad o actividad de refuerzo.`;
+
     return [
       {
-        id: `al-${classId}-${c.id}`,
+        id: alertId,
         classId,
+        kind: 'TOPIC',
         message: `${affectedPercent}% del aula ${diagnosis}.`,
         affectedPercent,
         rubricCriterionId: c.id,
+        suggestedAction,
+        affectedAliases,
+        attendedAt: attendedMap.get(alertId),
       },
     ];
   });
+
+  // Alerta por inactividad (estudiantes con al menos un evento y cuyo último evento tiene 7 días o más)
+  const now = Date.now();
+  const inactiveStudents: ClassStudent[] = [];
+  for (const s of students) {
+    const lastEventStr = lastEvents.get(s.studentId);
+    if (!lastEventStr) continue; // Quien nunca tuvo eventos no cuenta
+    const lastDate = new Date(lastEventStr).getTime();
+    if (now - lastDate >= SEVEN_DAYS_MS) {
+      inactiveStudents.push(s);
+    }
+  }
+
+  let inactivityAlert: ExplainableAlert | undefined;
+  if (inactiveStudents.length > 0) {
+    const n = inactiveStudents.length;
+    const inactivityAlertId = `al-${classId}-inactivity`;
+    inactivityAlert = {
+      id: inactivityAlertId,
+      classId,
+      kind: 'INACTIVITY',
+      message: `${n} ${n === 1 ? 'estudiante lleva' : 'estudiantes llevan'} 7 días o más sin actividad.`,
+      affectedPercent: students.length ? Math.round((n / students.length) * 100) : 0,
+      rubricCriterionId: undefined,
+      suggestedAction: 'Conversa con cada estudiante o con su familia para saber si necesita ayuda.',
+      affectedAliases: inactiveStudents.map((s) => s.alias),
+      attendedAt: attendedMap.get(inactivityAlertId),
+    };
+  }
+
+  return [...topicAlerts, ...(inactivityAlert ? [inactivityAlert] : [])];
 }
 
 export async function classAnalytics(classId: string): Promise<ClassAnalytics> {

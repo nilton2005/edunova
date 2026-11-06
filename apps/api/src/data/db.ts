@@ -86,6 +86,11 @@ async function initialize() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
         json JSONB NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS alert_actions (
+        alert_id TEXT PRIMARY KEY,
+        teacher_id TEXT NOT NULL,
+        attended_at TIMESTAMPTZ NOT NULL
+      );
     `);
 
     await seedData(client);
@@ -224,4 +229,35 @@ export async function listAssessments(classroomCode: string) {
     [classroomCode],
   );
   return rows.map((row) => row.json);
+}
+
+export async function lastEventByStudent(studentIds: string[]): Promise<Map<string, string>> {
+  await ready();
+  if (!studentIds.length) return new Map();
+  const { rows } = await pool.query<{ student_id: string; last_event: string }>(
+    `SELECT student_id, MAX(occurred_at)::text AS last_event
+     FROM learning_events
+     WHERE student_id = ANY($1)
+     GROUP BY student_id`,
+    [studentIds],
+  );
+  return new Map(rows.map((r) => [r.student_id, r.last_event]));
+}
+
+export async function saveAlertAction(alertId: string, teacherId: string, attendedAt: string = new Date().toISOString()) {
+  await ready();
+  await pool.query(
+    `INSERT INTO alert_actions (alert_id, teacher_id, attended_at)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (alert_id) DO UPDATE SET teacher_id = EXCLUDED.teacher_id, attended_at = EXCLUDED.attended_at`,
+    [alertId, teacherId, attendedAt],
+  );
+}
+
+export async function listAlertActions(): Promise<Map<string, string>> {
+  await ready();
+  const { rows } = await pool.query<{ alert_id: string; attended_at: string }>(
+    'SELECT alert_id, attended_at::text FROM alert_actions',
+  );
+  return new Map(rows.map((r) => [r.alert_id, r.attended_at]));
 }
