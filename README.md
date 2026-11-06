@@ -45,6 +45,8 @@ Prueba rápida: `curl localhost:4000/api/health`
 | POST | `/api/ai/analyze-handwritten-photo` | simulado (hoja de prueba fija) |
 | POST | `/api/ai/validate-duel-question` | simulado (heurística simple) |
 | POST | `/api/ai/duel-opponent-questions` | con token de estudiante: Gemini genera preguntas del rival según curso y tema; respaldo si falla o no hay key |
+| GET | `/api/diagnostic/questions` | con token de estudiante: 9 preguntas de nivel (TaRL) sin la respuesta |
+| POST | `/api/diagnostic/submit` | con token de estudiante: evalúa nivel TaRL y guarda diagnosticTier y diagnosedAt en el perfil |
 | POST | `/api/ai/family-home-explainer` | Gemini, solo recibe el tema; respaldo si falla |
 | GET | `/api/leagues/leaderboard?league=mastery\|effort` | solo datos públicos de cada fila (Safe-Play) |
 | GET | `/api/shop/items` | catálogo de accesorios |

@@ -57,6 +57,7 @@ export async function classStudents(classId: string): Promise<ClassStudent[]> {
       studentId: user.id,
       alias: user.alias,
       ageTier: user.ageTier,
+      diagnosticTier: profile.diagnosticTier,
       streakDays: profile.streakDays,
       division: profile.leagues.division,
       overallMasteryPercent: average(mastery.map((m) => m.masteryPercent)),
