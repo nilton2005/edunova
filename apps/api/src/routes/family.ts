@@ -218,7 +218,6 @@ family.get('/routes', requireFamily, asyncHandler(async (_req, res) => {
       id: u.id,
       title: u.title,
       familyCategory: u.familyCategory,
-      topicsCount: u.subtopics.length,
       subtopicsCount: u.subtopics.length,
     }));
   res.json(sharedRoutes);
@@ -260,6 +259,14 @@ family.post('/routes/:id/assign', requireFamily, asyncHandler(async (req, res) =
   newUnit.sharedWithFamilies = false;
   newUnit.sourceUnitId = sourceUnit.id;
   newUnit.status = 'PUBLISHED';
+  // El dominio se busca por subtema: con los ids del original, practicar en casa cambiaría el dominio del aula.
+  for (const subtopic of newUnit.subtopics) {
+    subtopic.id = `${newUnit.id}-${subtopic.id}`;
+    for (const question of subtopic.stages.demonstrate.questions) {
+      question.id = `${newUnit.id}-${question.id}`;
+      question.rubricCriterionId = '';
+    }
+  }
 
   await saveUnit(newUnit);
   res.json(newUnit);
